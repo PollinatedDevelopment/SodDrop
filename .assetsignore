@@ -1,0 +1,8 @@
+# Never uploaded to Cloudflare — the original single-file build and repo files.
+source
+worker
+README.md
+wrangler.toml
+.assetsignore
+.git
+.gitignore
