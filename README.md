@@ -80,8 +80,11 @@ Hosting the page somewhere else (e.g. GitHub Pages)? Pass the worker origin:
 - **Teams**: SOLO/DUO/TRIO/SQUAD. Bots fill your team when you are short-handed; teammates are
   marked with a green name plate and are never targeted by you or by friendly bots.
 - **Bots have name plates** above their heads (long names are cut off with `…`).
-- **Full map on `M`** — island map with storm ring, bus route, teammates, enemies and every
-  named location: SUPER SOD HQ, Puddle Plaza, Mud Flats, Sod Springs, Compost Canyon,
+- **Bird's-eye map on `M`** — the island is drawn from the game's own terrain heights, so lakes,
+  beaches, hills, towns and the HQ show up exactly where they are in the world. A gold **YOU**
+  arrow (with a view cone) marks your position and heading; the storm shades everything outside
+  the ring, the dashed line is the bus route, and teammates/enemies are green/red dots. Every
+  named location is labelled: SUPER SOD HQ, Puddle Plaza, Mud Flats, Sod Springs, Compost Canyon,
   Dirt Docks, The Rootworks, Grub Gully, Brickyard, Grassfield.
 - **Sod** is the character: blocky dirt head with grass, white eyes and a blue shirt.
 
@@ -96,7 +99,7 @@ Hosting the page somewhere else (e.g. GitHub Pages)? Pass the worker origin:
 | `R` / `1-5` / wheel | Reload / switch weapon |
 | `Z` `X` `C` | Wall / floor / ramp |
 | `E` | Open chest |
-| `M` | Full map |
+| `M` | Bird's-eye map |
 | `ESC` | Pause |
 
 ## Netcode notes
