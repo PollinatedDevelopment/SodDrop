@@ -10,3 +10,4 @@ wrangler.toml
 .git
 .wrangler
 node_modules
+.github

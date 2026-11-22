@@ -44,6 +44,22 @@ npx wrangler deploy
 
 Then open `https://soddrop.<your-subdomain>.workers.dev`.
 
+### Auto-deploy on push
+
+`.github/workflows/deploy.yml` deploys on every push to `main` (and on a manual
+`workflow_dispatch`), so a commit is all it takes. Add two repository secrets under
+**Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Where to get it |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard → **My Profile → API Tokens → Create Token → "Edit Cloudflare Workers"** template |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → **Workers & Pages** → *Account ID* in the right sidebar |
+
+The workflow runs `npx wrangler@4 deploy` from the repo root, so it publishes `index.html`,
+`audio/` and `worker/index.js` exactly like a manual deploy (`.assetsignore` still applies).
+If the deploy step reports a Durable Objects permission error, edit the token and add
+**Workers Durable Objects: Edit** to it.
+
 - **CREATE PARTY** makes a 5-character code, or type a friend's code and **JOIN**.
 - Everyone presses **READY UP**; when the whole party is ready a shared countdown starts and
   every player loads into the same match.
