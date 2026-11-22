@@ -2,8 +2,8 @@
 
 100 PVP Scrunchy Goodness — a 3D battle-royale-style shooter that runs in the browser.
 
-Free-for-all only (no teams): jump off the battle bus, loot chests, build, and be the last
-one standing. Play alone against bots, or open a party and fight your friends.
+Solo free-for-all, or open a party and drop with friends. Pick **SOLO / DUO / TRIO / SQUAD**:
+your team is filled with bots when nobody is around, and the rest of the lobby is bots too.
 
 ## Files
 
@@ -14,11 +14,12 @@ one standing. Play alone against bots, or open a party and fight your friends.
 | `audio/storm-music.mp3` | In-match track, extracted out of the HTML |
 | `worker/index.js` | Cloudflare Worker + Durable Object party server |
 | `wrangler.toml` | Cloudflare deploy config (assets + `PARTY` binding) |
-| `.assetsignore` | Keeps `source/` etc. out of the deployed upload |
-| `source/storm_drop_3d_smaller.html` | Original single-file build (audio still embedded), kept for reference |
+| `.assetsignore` | Keeps `source/`, `worker/` etc. out of the deployed upload |
+| `source/storm_drop_3d_pirate.html` | Reference build (locker, shop, OG pass), kept for history |
+| `source/storm_drop_3d_smaller.html` | Original single-file build (audio still embedded) |
 
-The two tracks used to be ~1.2 MB base64 blobs inline in the page; they are now ordinary
-files served next to it, so `index.html` is ~86 KB.
+Audio used to be two ~1.2 MB base64 blobs inline in the page; it is now ordinary files served
+next to it, so `index.html` stays ~126 KB.
 
 ## Play
 
@@ -29,43 +30,64 @@ python3 -m http.server 8080
 # http://localhost:8080/
 ```
 
-Click anywhere to start the music, then **READY UP** for a solo match against bots.
+Click anywhere to start the music, then **READY UP**. Solo play needs no server; party play does.
 
 ## Party (Cloudflare multiplayer)
 
-Multiplayer needs a server, so it runs on a Cloudflare Worker with one Durable Object per
-party code. The worker also serves the page and the audio, so a single deploy gives you a
-complete game.
+Multiplayer needs a WebSocket server, so it runs on a Cloudflare Worker with one Durable
+Object per party code. The same deploy serves the page and the audio.
 
 ```bash
-npx wrangler login
-npx wrangler deploy      # from the repo root
+npx wrangler login      # once
+npx wrangler deploy
 ```
 
-Wrangler prints a URL like `https://soddrop.<your-subdomain>.workers.dev`. That's the game.
+Then open `https://soddrop.<your-subdomain>.workers.dev`.
 
-1. One player clicks **CREATE PARTY** — a 5-character code appears (COPY LINK copies an invite).
-2. Friends type the code and hit **JOIN** (up to 10 players per party).
-3. Everyone flips to **READY UP**. When the whole party is ready, a 5-second countdown runs
-   and everybody drops into the same match at once.
-4. Last player standing wins. **BACK TO LOBBY** returns you to the same party for a rematch.
+- **CREATE PARTY** makes a 5-character code, or type a friend's code and **JOIN**.
+- Everyone presses **READY UP**; when the whole party is ready a shared countdown starts and
+  every player loads into the same match.
+- The lobby shows the party: each member stands on their own pedestal with a name plate, and
+  the roster lists team + ready state.
+- Change **YOUR NAME** any time — before or during a party; it updates everywhere.
+- **BACK TO LOBBY** on the results card returns to the lobby without reloading, so the party
+  stays together.
+- The host picks the team size; everyone else follows.
 
-**Hosting the page somewhere else (GitHub Pages, etc.)?** Deploy the worker, then point the
-page at it — either set `PARTY_SERVER` in `index.html` to your worker origin, or open the page
-with `?server=https://your-worker.workers.dev`. Without a worker the page still plays solo;
-joining a party just reports that the server is unreachable.
+Hosting the page somewhere else (e.g. GitHub Pages)? Pass the worker origin:
+`index.html?server=https://your-worker.workers.dev`.
 
-### How the netcode works
+## What's in a match
 
-- The Durable Object owns the roster, the ready flags, the countdown and the match phase, so
-  everyone starts on the same tick.
-- Each client sends its own position/rotation/state about 10 times a second; the room relays
-  it to the other players, who are drawn as name-tagged characters and interpolated locally.
-- Hits are reported by the shooter and replayed on the target (`hit` → local damage), with
-  damage clamped server-side. Good enough between friends; not tournament-grade.
-- Bots are local filler (12 per party match, 40 in solo) and are not synced — the humans are.
+- **Battle bus** path is derived from a per-match seed the server sends, so every player in the
+  party rides the identical route and can drop together.
+- **Teams**: SOLO/DUO/TRIO/SQUAD. Bots fill your team when you are short-handed; teammates are
+  marked with a green name plate and are never targeted by you or by friendly bots.
+- **Bots have name plates** above their heads (long names are cut off with `…`).
+- **Full map on `M`** — island map with storm ring, bus route, teammates, enemies and every
+  named location: SUPER SOD HQ, Puddle Plaza, Mud Flats, Sod Springs, Compost Canyon,
+  Dirt Docks, The Rootworks, Grub Gully, Brickyard, Grassfield.
+- **Sod** is the character: blocky dirt head with grass, white eyes and a blue shirt.
 
 ## Controls
 
-`WASD` move · `SHIFT` sprint · `SPACE` glider/jump · mouse aim · click fire · right click ADS
-· `R` reload · `Z`/`X`/`C` wall/floor/ramp · `E` open chest · `ESC` pause
+| Key | Action |
+| --- | --- |
+| `WASD` | Move |
+| `SHIFT` | Sprint |
+| `SPACE` | Glide / jump |
+| Mouse | Aim, hold to fire, right button to ADS |
+| `R` / `1-5` / wheel | Reload / switch weapon |
+| `Z` `X` `C` | Wall / floor / ramp |
+| `E` | Open chest |
+| `M` | Full map |
+| `ESC` | Pause |
+
+## Netcode notes
+
+- Positions stream at 10 Hz; remote players are interpolated client-side.
+- Damage is reported by the shooter and applied by the target, with the server clamping each
+  hit to 1–45. Fine for friends, not tournament-grade.
+- Bots are simulated locally on each client (they are atmosphere, not authority); humans are
+  synced through the Durable Object.
+- A party code is a live session: it empties out and resets once everyone leaves.

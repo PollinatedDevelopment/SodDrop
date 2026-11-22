@@ -20,6 +20,7 @@ export class Party {
     this.env = env;
     this.members = new Map(); // id -> {id,name,ready,host,alive,ws}
     this.phase = 'lobby'; // lobby | countdown | playing
+    this.mode = 1; // team size: 1 solo, 2 duo, 3 trio, 4 squad
     this.endsAt = 0;
     this.timer = null;
     this.code = '';
@@ -68,6 +69,7 @@ export class Party {
       id,
       code: this.code,
       phase: this.phase,
+      mode: this.mode,
       endsAt: this.endsAt,
       members: this.roster(),
     });
@@ -91,6 +93,12 @@ export class Party {
         const n = clean(m.name);
         if (n) member.name = n;
         if (m.t === 'hello') member.ready = false;
+        this.broadcast();
+        break;
+      }
+      case 'mode': {
+        // Only the host picks the team size; everyone else follows the broadcast.
+        if (member.host) this.mode = clamp(Math.round(Number(m.v) || 1), 1, 4);
         this.broadcast();
         break;
       }
@@ -159,12 +167,15 @@ export class Party {
   }
 
   roster() {
-    return [...this.members.values()].map(m => ({
+    const mode = this.mode || 1;
+    return [...this.members.values()].map((m, i) => ({
       id: m.id,
       name: m.name,
       ready: m.ready,
       host: m.host,
       alive: m.alive,
+      team: 1 + Math.floor(i / mode),
+      mode,
     }));
   }
 
@@ -189,6 +200,7 @@ export class Party {
       t: 'roster',
       members: this.roster(),
       phase: this.phase,
+      mode: this.mode,
       endsAt: this.endsAt,
     });
     for (const m of this.members.values()) {
@@ -207,6 +219,17 @@ export class Party {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => this.begin(), this.countdownMs);
     this.broadcast();
+    this.announceCountdown();
+  }
+
+  // Dedicated ping so clients can run the number ticker even if they miss a roster.
+  announceCountdown() {
+    const msg = JSON.stringify({ t: 'countdown', endsAt: this.endsAt, mode: this.mode });
+    for (const m of this.members.values()) {
+      try {
+        m.ws.send(msg);
+      } catch (e) {}
+    }
   }
 
   begin() {
@@ -215,7 +238,8 @@ export class Party {
     this.phase = 'playing';
     this.endsAt = 0;
     for (const m of this.members.values()) m.alive = true;
-    const start = JSON.stringify({ t: 'start' });
+    // One seed per match so every player rides the exact same battle bus.
+    const start = JSON.stringify({ t: 'start', seed: (Math.random() * 1e9) | 0, mode: this.mode });
     for (const m of this.members.values()) {
       try {
         m.ws.send(start);

@@ -1,8 +1,12 @@
-# Never uploaded to Cloudflare — the original single-file build and repo files.
+# never uploaded to Cloudflare
 source
 worker
+artifacts
+.build
 README.md
 wrangler.toml
 .assetsignore
-.git
 .gitignore
+.git
+.wrangler
+node_modules
