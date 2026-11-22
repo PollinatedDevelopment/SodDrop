@@ -913,7 +913,7 @@ function finish(win){if(gameOver)return;gameOver=true;firing=false;document.exit
  META.hist=[{p:place,k:kills,t:Math.floor(elapsed)},...(META.hist||[])].slice(0,6);META.drops++;META.kills+=kills;
  if(win)META.wins++;if(place<=10)META.top10++;saveMeta();renderMeta();
  send({t:'died'});
- setTimeout(()=>{show('card');$('card').innerHTML=`<div class="cardBox"><div class="eyebrow">MATCH RESULTS</div><h1>${win?'#1 VICTORY':'ELIMINATED'}</h1><div class="resGrid"><div><b>#${place}</b><span>PLACE</span></div><div><b>${kills}</b><span>ELIMS</span></div><div><b>${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(Math.floor(elapsed%60)).padStart(2,'0')}</b><span>SURVIVED</span></div></div><p>${win?'Last one standing!':'Better luck next drop.'} +${earn} coins</p><button id="backBtn" type="button">BACK TO LOBBY</button></div>`;
+ setTimeout(()=>{if(!gameOver)return;show('card');$('card').innerHTML=`<div class="cardBox"><div class="eyebrow">MATCH RESULTS</div><h1>${win?'#1 VICTORY':'ELIMINATED'}</h1><div class="resGrid"><div><b>#${place}</b><span>PLACE</span></div><div><b>${kills}</b><span>ELIMS</span></div><div><b>${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(Math.floor(elapsed%60)).padStart(2,'0')}</b><span>SURVIVED</span></div></div><p>${win?'Last one standing!':'Better luck next drop.'} +${earn} coins</p><button id="backBtn" type="button">BACK TO LOBBY</button></div>`;
  const bb=$('backBtn');if(bb)bb.onclick=()=>resetToLobby();},900)}
 const mini=$('mini').getContext('2d');
 function drawMini(sr){const S=170,sc=S/380;mini.clearRect(0,0,S,S);mini.save();mini.translate(S/2,S/2);mini.rotate(-yaw);const p=player.position;
@@ -1079,7 +1079,7 @@ function startMatch(seed,mode,humans){
  $('feed').innerHTML='';$('prompt').style.display='none';mapOpen=false;$('bigmap').classList.add('hidden');
  hud();lock();
 }
-function resetToLobby(){
+function resetToLobby(silent){
  document.exitPointerLock();clearTimeout(soloTimer);stopCountdown();
  gameOver=false;firing=false;matchStarted=false;inMenu=true;adsOn=false;adsK=0;
  clearBots();for(const id of [...remotes.keys()])dropRemote(id);
@@ -1095,7 +1095,7 @@ function resetToLobby(){
  mapOpen=false;$('bigmap').classList.add('hidden');
  tabEls.forEach(x=>x.classList.toggle('on',x.textContent.trim()==='PLAY'));view='locker';lkMode(false);
  show('menu');hud();
- myReady=false;if(roomCode&&ws)send({t:'tolobby'});
+ myReady=false;if(!silent&&roomCode&&ws)send({t:'tolobby'});
  renderParty();renderLobbyParty();dress(lobbyHero,LKS);dress(player,LKS);
 }
 
@@ -1139,6 +1139,7 @@ function onMessage(m){switch(m.t){
  case 'state':{const mem=members.find(x=>x.id===m.id);const r=remoteFor(m.id,m.name,mem&&mem.team);r.tx=m.x||0;r.ty=m.y||0;r.tz=m.z||0;r.tyaw=m.yaw||0;r.st=m.st||'ground';r.alive=m.alive!==false;break}
  case 'hit':hurt(Math.max(1,m.dmg||10));break;
  case 'died':markRemote(m.id,false);feed((m.name||'A player')+' was eliminated');break;
+ case 'tolobby':stopCountdown();resetToLobby(true);netNote((m.by?escHtml(m.by)+' sent the party back to the lobby':'Back in the lobby')+' \u2014 ready up again');break;
  case 'notice':if(m.msg)netNote(m.msg);break;
  default:break}}
 function joinParty(raw){const code=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);

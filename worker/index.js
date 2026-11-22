@@ -149,7 +149,9 @@ export class Party {
         break;
       }
       case 'tolobby': {
-        if (member.host) this.toLobby();
+        // Any member can end the round: the party goes back to the lobby for everyone.
+        if (this.phase !== 'lobby') this.toLobby();
+        this.announceLobby(member.name);
         break;
       }
     }
@@ -220,6 +222,16 @@ export class Party {
     this.timer = setTimeout(() => this.begin(), this.countdownMs);
     this.broadcast();
     this.announceCountdown();
+  }
+
+  // Tells every client the room is back in the lobby, so nobody stays stuck in a match.
+  announceLobby(by) {
+    const msg = JSON.stringify({ t: 'tolobby', by: by || '' });
+    for (const m of this.members.values()) {
+      try {
+        m.ws.send(msg);
+      } catch (e) {}
+    }
   }
 
   // Dedicated ping so clients can run the number ticker even if they miss a roster.
