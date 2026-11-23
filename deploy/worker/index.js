@@ -128,6 +128,15 @@ export class Party {
         });
         break;
       }
+      // a shot fired somewhere in the match: other clients pan it from the muzzle position
+      case 'shot': {
+        this.relay(member, {
+          t: 'shot',
+          w: typeof m.w === 'string' ? m.w.slice(0, 10) : 'ar',
+          x: num(m.x), y: num(m.y), z: num(m.z),
+        });
+        break;
+      }
       case 'hit': {
         const target = this.members.get(m.target);
         if (target && target !== member && member.alive)
@@ -172,6 +181,21 @@ export class Party {
           from: member.name,
         });
         break;
+      // leaving mid-match: out of the round, but still in the party (and can ready up again)
+      case 'leave': {
+        member.alive = false;
+        if (member.host) {
+          const next = [...this.members.values()].find(m => m !== member);
+          if (next) {
+            next.host = true;
+            member.host = false;
+          }
+        }
+        this.relay(member, { t: 'died', id: member.id, name: member.name });
+        this.broadcast();
+        this.maybeReset();
+        break;
+      }
       case 'died': {
         if (member.alive) {
           member.alive = false;

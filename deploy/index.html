@@ -280,10 +280,36 @@ button{font-family:inherit;font-weight:900;letter-spacing:.04em;border:0;backgro
 #bskill{display:flex;gap:3px}
 #bskill button{font-size:8px;padding:4px 5px}
 #bskill button.on{background:linear-gradient(180deg,#ffe071,#ffb50d);color:#2b1d00}
+/* ---------- storm notifier + team panel ---------- */
+#zoneHud{position:absolute;left:50%;top:14px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:1px;
+ padding:6px 18px;border-radius:999px;background:rgba(6,20,36,.82);border:1px solid rgba(126,186,232,.4);color:#dcebf8;pointer-events:none;min-width:196px;text-align:center}
+#zoneHud b{font-size:14px;letter-spacing:.15em;font-style:italic;line-height:1.15}
+#zoneHud span{font-size:9px;letter-spacing:.17em;color:#9ec6e8;white-space:nowrap}
+#zoneHud.safe{border-color:rgba(100,232,255,.55)}
+#zoneHud.safe b{color:#bff4ff}
+#zoneHud.closing{border-color:rgba(201,168,255,.75)}
+#zoneHud.closing b{color:#e0ccff}
+#zoneHud.danger{border-color:rgba(255,90,101,.85);background:rgba(64,8,16,.88);animation:zPulse 1s infinite}
+#zoneHud.danger b,#zoneHud.danger span{color:#ff9aa2}
+@keyframes zPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,90,101,.55)}50%{box-shadow:0 0 0 9px rgba(255,90,101,0)}}
+#teamHud{position:absolute;left:26px;top:150px;display:flex;flex-direction:column;gap:4px;pointer-events:none;min-width:172px;z-index:5}
+#teamHud.hidden{display:none}
+#teamHud .tHead{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.2em;color:#dcebf8;background:rgba(6,20,36,.82);border:1px solid rgba(126,186,232,.35);border-radius:6px;padding:5px 9px}
+#teamHud .tHead i{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+#teamHud .tHead span{margin-left:auto;font-size:9px;color:#7be36a;letter-spacing:.12em}
+#teamHud .tRow{display:flex;align-items:center;gap:7px;background:rgba(6,20,36,.74);border:1px solid rgba(126,186,232,.22);border-radius:5px;padding:4px 9px;font-size:11px;color:#cfe6fa}
+#teamHud .tRow.out{opacity:.4;text-decoration:line-through}
+#teamHud .tName{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#teamHud .tName em{font-style:normal;font-size:8px;letter-spacing:.1em;color:#0b2a12;background:#6ef07a;border-radius:3px;padding:1px 3px;margin-left:4px}
+#teamHud .tHp{flex:0 0 44px;height:4px;border-radius:2px;background:rgba(255,255,255,.16);overflow:hidden;display:block}
+#teamHud .tHp i{display:block;height:100%;background:linear-gradient(90deg,#7be36a,#b6ff7a)}
+#leaveMatchBtn{width:100%;margin-top:9px;padding:11px;border-radius:5px;border:1px solid rgba(255,90,101,.55);background:rgba(64,10,18,.8);color:#ff9aa2;font-size:12px;letter-spacing:.2em;font-weight:800}
+#leaveMatchBtn:hover{background:rgba(102,16,28,.92);color:#ffc2c6}
 </style>
 </head>
 <body>
-<div id="hud"><button id="hudSet" type="button" aria-label="Settings">⚙</button><div id="resumeHint">CLICK TO RESUME — THE MATCH KEEPS RUNNING</div>
+<div id="hud"><button id="hudSet" type="button" aria-label="Settings">⚙</button><div id="zoneHud" class="wait"><b id="zoneTxt">STORM IN 1:00</b><span id="zoneSub">ZONE 1/4</span></div><div id="teamHud" class="hidden"></div>
+<div id="resumeHint">CLICK TO RESUME — THE MATCH KEEPS RUNNING</div>
  <div id="hurt"></div><div id="crosshair"></div><div id="hit">✕</div><div id="message">Press SPACE to jump off the battle bus!</div>
  <div id="right"><canvas id="mini" width="170" height="170"></canvas><br><div>👤 <span id="bots">15</span> left · ☠ <span id="kills">0</span></div><br><div id="storm">Storm</div></div>
  <div id="feed"></div><div id="prompt" style="display:none">Press <b>E</b> to open chest</div>
@@ -393,7 +419,7 @@ button{font-family:inherit;font-weight:900;letter-spacing:.04em;border:0;backgro
 <div id="settings" class="modal hidden"><div class="cardBox wide">
  <h1>SETTINGS</h1>
  <div id="setRows"></div>
- <div class="btns"><button id="setReset" type="button" class="ghost">RESET</button><button id="setBack" type="button">BACK</button></div>
+ <div class="btns"><button id="setReset" type="button" class="ghost">RESET</button><button id="setBack" type="button">BACK</button></div><button id="leaveMatchBtn" type="button">LEAVE MATCH</button>
 </div></div>
 
 <div id="controls" class="modal hidden"><div class="cardBox wide">
@@ -409,6 +435,7 @@ button{font-family:inherit;font-weight:900;letter-spacing:.04em;border:0;backgro
  <div class="btns"><button id="controlsClose" type="button">BACK</button></div>
 </div></div>
 
+<div id="leaveConfirm" class="modal hidden"><div class="cardBox"><h1>LEAVE MATCH?</h1><p class="hint">You will be eliminated and sent back to the lobby. You can ready up again straight away.</p><div class="btns"><button id="leaveNo" type="button" class="ghost">STAY</button><button id="leaveYes" type="button">LEAVE MATCH</button></div></div></div>
 <div id="card" class="modal hidden"></div>
 <div id="loading"><h1>SODDROP</h1><h2>3D BATTLE ROYALE</h2><div class="ldBar"><i id="ldFill"></i></div><div id="ldTxt">LOADING 0%</div></div>
 </div>
@@ -1033,6 +1060,7 @@ function spawnBots(n,teams,humans){
   const g=makeSod(o[0],o[1],o[2]);const w=pickBotGun();setGun(g,w);
   g.position.copy(bus.position);g.position.y-=2.6;
   const tag=labelSprite(nm,team===myTeam?0x9dffa0:0xffffff);g.add(tag);
+  if(team===myTeam)g.add(allyMark());
   const lv=BOT_SKILL==='mix'?LV_KEYS[Math.floor(Math.pow(R(),1.55)*4)]:BOT_SKILL;
   const pers=PERS_KEYS[Math.floor(R()*PERS_KEYS.length)];
   const poi=isMine?POIS[1+Math.floor(R()*3)]:POIS[1+Math.floor(R()*(POIS.length-1))];
@@ -1050,6 +1078,7 @@ function killBot(b,by,wn){
  if(!b.alive)return;b.alive=false;b.st='dead';scene.remove(b.g);
  if(by==='You'){kills++;const el=$('kills');if(el)el.textContent=kills;feed('You eliminated '+b.name+(wn?' \u00b7 '+wn:''))}
  else feed(by+' eliminated '+b.name);
+ if(typeof renderTeamHud==='function')renderTeamHud();
  if(!enemiesLeft())finish(true)}
 function hitBot(b,dmg,by,wn){
  if(!b.alive)return;
@@ -1125,7 +1154,7 @@ function botThink(b){
  const g=b.g.position,cfg=b.cfg,per=b.pers;
  if(b.st!=='ground')return;
  if(b.tgt){const t=b.tgt;if((t.kind==='b'&&(!t.ref||!t.ref.alive))||(t.kind==='r'&&(!t.ref||!t.ref.alive||t.ref.st==='bus'))||(t.kind==='p'&&(state!=='ground'||gameOver)))b.tgt=null}
- const stormD=Math.hypot(g.x,g.z),inStorm=stormD>stormR-8;
+ const stormD=zoneDist(g.x,g.z),inStorm=zoneOutside(g.x,g.z);
  const enemies=botEnemyList(b),vis=cfg.vis*per.vis;
  let best=null,bs=1e9;
  for(const e of enemies){
@@ -1152,8 +1181,8 @@ function botThink(b){
   b.heals--;b.hp=Math.min(100,b.hp+38);b.act='heal';b.healT=1.1;b.mvx=b.mvz=0;
   return}
  if(inStorm){b.act='storm';b.tgt=b.tgt&&bs<18?b.tgt:null;
-  const a=Math.atan2(-g.z,-g.x),d=Math.max(8,stormR*.55);
-  b.goal=[Math.cos(a)*d+Math.sin(b.t*1.3)*6,Math.sin(a)*d+Math.cos(b.t*1.3)*6];
+  // run for the safe circle itself, not the island middle
+  b.goal=[zoneCur.x+Math.sin(b.t*1.3)*stormR*.35,zoneCur.z+Math.cos(b.t*1.3)*stormR*.35];
   b.spd=5.4;b.mvx=b.goal[0]-g.x;b.mvz=b.goal[1]-g.z;
   if(b.tgt)botFight(b);return}
  // defend / heal up under fire
@@ -1163,13 +1192,19 @@ function botThink(b){
  if(best){botFight(b);return}
  // no enemies: loot, regroup, or rotate into the next circle
  if(botLoot(b))return;
+ // squadmates (bot or human) drift back to the team instead of wandering off alone
+ if(b.team===myTeam&&state==='ground'&&!gameOver){
+  const pdd=Math.hypot(player.position.x-g.x,player.position.z-g.z);
+  if(pdd>42){b.act='regroup';b.goal=[player.position.x+Math.cos(b.t*.6)*9,player.position.z+Math.sin(b.t*.6)*9];
+   b.spd=5;b.mvx=b.goal[0]-g.x;b.mvz=b.goal[1]-g.z;return}
+ }
  if(ally&&ad>52){b.act='regroup';b.goal=[ally.g.position.x,ally.g.position.z];b.spd=5;b.mvx=b.goal[0]-g.x;b.mvz=b.goal[1]-g.z;return}
  b.seekT=(b.seekT||0)-1;
  if(!b.goal||Math.hypot(b.goal[0]-g.x,b.goal[1]-g.z)<6||b.seekT<=0){
   b.seekT=8+Math.floor(Math.random()*6);
-  const lim=Math.min(stormR*.78,SR[0]);
+  const lim=Math.min(stormR*.8,SR[0]);
   const a=b.rand()*6.2832,d=lim*(.25+b.rand()*.6);
-  b.goal=[Math.cos(a)*d,Math.sin(a)*d]}
+  b.goal=[zoneCur.x+Math.cos(a)*d,zoneCur.z+Math.sin(a)*d]}
  b.act='rotate';b.spd=4.4;b.mvx=b.goal[0]-g.x;b.mvz=b.goal[1]-g.z}
 function botFight(b){
  const t=b.tgt;if(!t)return;
@@ -1213,8 +1248,8 @@ function botBody(b,dt){
   return}
  if(g.visible===false)g.visible=true;
  const gy=surf(gp.x,gp.z,gp.y+1.1);
- {const sd=Math.hypot(gp.x,gp.z);
-  if(sd>stormR){b.hp-=dt*(1.8+Math.min(3.4,(sd-stormR)/55));b.hurtT=Math.max(b.hurtT,.2);
+ {const sd=zoneDist(gp.x,gp.z);
+  if(zoneActive&&sd>stormR){b.hp-=dt*(1.8+Math.min(3.4,(sd-stormR)/55));b.hurtT=Math.max(b.hurtT,.2);
    if(b.hp<=0&&b.alive){killBot(b,'The storm','');return}}}
  const moving=Math.abs(b.mvx)+Math.abs(b.mvz)>.05&&!b.healT;
  if(moving){
@@ -1264,7 +1299,7 @@ function botShoot(b,dist){
  const landed=hit&&Math.random()<hitchance;
  const end=landed?aim:aim.clone().add(new V(rnd(-2.4,2.4),rnd(-1.2,1.2),rnd(-2.4,2.4)));
  tracer(muzzle(g),end,t.kind==='p'?0xff7a6a:0xffc27a);
- gunSnd(b.w,Math.max(.12,1-dist/80)*.45);
+ gunSnd(b.w,Math.max(.12,1-dist/80)*.45,g.position);
  if(landed){
   const dmg=GUNS[b.w].dmg*.32*cfg.dmg*(b.w==='shotgun'?1.6:1);
   botDamage(b,t,dmg)}}
@@ -1273,7 +1308,9 @@ function ensureGhost(id,name,team,lv){
  let b=null;for(const x of bots)if(x.id===id&&x.realm==='ghost'){b=x;break}
  if(b){if(name&&name!==b.name){b.name=name;b.g.remove(b.tag);b.g.add(b.tag=labelSprite(name,b.team===myTeam?0x9dffa0:0xffffff))}if(team)b.team=team;return b}
  const o=outfits[(id|0)%outfits.length],g=makeSod(o[0],o[1],o[2]);setGun(g,'ar');
- const tag=labelSprite(name||'Bot',(team||2)===myTeam?0x9dffa0:0xffffff);g.add(tag);g.visible=false;scene.add(g);
+ const tag=labelSprite(name||'Bot',(team||2)===myTeam?0x9dffa0:0xffffff);g.add(tag);
+ if((team||2)===myTeam)g.add(allyMark());
+ g.visible=false;scene.add(g);
  b={id,realm:'ghost',g,tag,name:name||'Bot',team:team||2,lv:lv||'normal',cfg:BD[lv]||BD.normal,pers:PERS.bal,
   hp:100,sh:0,alive:true,st:'bus',w:'ar',tgt:null,tx:0,ty:0,tz:0,tyaw:0,t:0,mag:99,ammo:99,mats:0,heals:0};
  bots.push(b);return b}
@@ -1338,7 +1375,7 @@ const flash=new THREE.Mesh(new THREE.SphereGeometry(.1,8,6),new THREE.MeshBasicM
  $('wslots').innerHTML=ORD.map((k,i)=>`<div class="slot ws${k===cw?' sel':''}" id="ws_${k}"><small>${i+1}</small><svg viewBox="0 0 60 24" width="52" height="21" fill="currentColor">${IC[k]}</svg><span id="wm_${k}">${inv[k].mag}</span></div>`).join('')})();
 addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')e.preventDefault();if(e.code==='KeyZ')build('w');if(e.code==='KeyX')build('f');if(e.code==='KeyC')build('r');if(e.code==='KeyR')reload();if(e.code==='KeyQ')equip(lastW);{const wi=['Digit1','Digit2','Digit3','Digit4','Digit5'].indexOf(e.code);if(wi>=0)equip(ORD[wi])}if(e.code==='KeyE')openChest()});addEventListener('keyup',e=>keys[e.code]=false);
 const overlay=$('overlay');const lock=()=>{try{const r=renderer.domElement.requestPointerLock({unadjustedMovement:true});if(r&&r.catch)r.catch(()=>renderer.domElement.requestPointerLock())}catch(e){renderer.domElement.requestPointerLock()}};let inMenu=true,menuT=0,DIFF={acc:1,dmg:1,sp:1},curShirt=0x2e6bff;$('hud').style.display='none';
-const show=id=>{for(const x of['pause','settings','controls','card']){const el=$(x);if(el)el.classList.toggle('hidden',x!==id)}overlay.style.display='flex'};
+const show=id=>{for(const x of['pause','settings','controls','card','leaveConfirm']){const el=$(x);if(el)el.classList.toggle('hidden',x!==id)}overlay.style.display='flex'};
 $('start').onclick=()=>{if(roomCode){myReady=!myReady;send({t:'ready',v:myReady});renderParty();return}localCountdown(3)};
 $('resume').onclick=()=>{overlay.style.display='none';lock()};
 const DEF={sens:22,fov:70,vol:70,music:50,res:100,invY:false,shadows:true,mini:true};let CFG={...DEF},setFrom='menu';
@@ -1569,10 +1606,52 @@ function hud(){$('hpf').style.width=hp+'%';$('hpn').textContent=Math.ceil(hp);$(
  for(const k of ORD){const e=$('ws_'+k);if(e){e.classList.toggle('sel',k===cw);$('wm_'+k).textContent=inv[k].mag}}$('mats').textContent=mats}
 function giveAmmo(){res.light=Math.min(RMAX.light,res.light+36);res.med=Math.min(RMAX.med,res.med+45);res.shell=Math.min(RMAX.shell,res.shell+8);res.heavy=Math.min(RMAX.heavy,res.heavy+5)}
 // ---- weapon sounds ----
-let _nb;function gunSnd(t,v=1){try{ac=ac||new AudioContext();const n=ac.currentTime,W=GUNS[t];if(!_nb){_nb=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=_nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
- const src=ac.createBufferSource();src.buffer=_nb;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(W.sf,n);f.frequency.exponentialRampToValueAtTime(300,n+W.sd);
- const g=ac.createGain();g.gain.setValueAtTime(Math.max(.0002,W.sv*v*GV*.5),n);g.gain.exponentialRampToValueAtTime(.001,n+W.sd);src.connect(f).connect(g).connect(ac.destination);src.start(n);src.stop(n+W.sd+.05);
- const o=ac.createOscillator(),og=ac.createGain();o.type='sine';o.frequency.setValueAtTime(W.sth,n);o.frequency.exponentialRampToValueAtTime(40,n+.14);og.gain.setValueAtTime(Math.max(.0002,.22*v*GV),n);og.gain.exponentialRampToValueAtTime(.001,n+.14);o.connect(og).connect(ac.destination);o.start(n);o.stop(n+.15)}catch(e){}}
+// ---- weapon sounds: real 3D audio, so distance and direction both read on the ears ----
+/* Every shot is a PannerNode placed at the muzzle of whoever fired it. The listener rides the
+   camera, so a shotgun two metres away cracks loudly and a sniper across the island is a soft
+   thump. Each weapon keeps its own filter/thump values from GUNS, so they stay distinguishable. */
+let _nb=null;
+function audioCtx(){ac=ac||new AudioContext();return ac}
+function panTo(panner,x,y,z){
+ if(panner.positionX){panner.positionX.value=x;panner.positionY.value=y;panner.positionZ.value=z}
+ else if(panner.setPosition)panner.setPosition(x,y,z)}
+function gunSnd(t,v=1,pos,extra){
+ try{
+  const C=audioCtx(),n=C.currentTime,W=GUNS[t];
+  if(!_nb){_nb=C.createBuffer(1,C.sampleRate,C.sampleRate);const d=_nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  let dist=0,pan=null,fade=1;
+  if(pos){
+   dist=Math.hypot(camera.position.x-pos.x,camera.position.y-pos.y,camera.position.z-pos.z);
+   if(dist>320)return;                                  // far enough away to be inaudible
+   fade=Math.max(.16,1/(1+dist/26));                    // an extra tail roll-off on top of the panner
+   pan=C.createPanner();
+   pan.panningModel='HRTF';pan.distanceModel='inverse';
+   pan.refDistance=8;pan.rolloffFactor=1.4;pan.maxDistance=320;
+   panTo(pan,pos.x,pos.y,pos.z)}
+  const src=C.createBufferSource();src.buffer=_nb;
+  const f=C.createBiquadFilter();f.type='lowpass';
+  f.frequency.setValueAtTime(W.sf,n);f.frequency.exponentialRampToValueAtTime(300,n+W.sd);
+  const g=C.createGain();g.gain.setValueAtTime(Math.max(.0002,W.sv*v*fade*GV*.5),n);
+  g.gain.exponentialRampToValueAtTime(.001,n+W.sd);
+  const out=pan||C.destination;
+  src.connect(f).connect(g).connect(out);if(pan)pan.connect(C.destination);
+  src.start(n);src.stop(n+W.sd+.05);
+  const o=C.createOscillator(),og=C.createGain();
+  o.type='sine';o.frequency.setValueAtTime(W.sth,n);o.frequency.exponentialRampToValueAtTime(40,n+.14);
+  og.gain.setValueAtTime(Math.max(.0002,.22*v*fade*GV*(extra||1)),n);og.gain.exponentialRampToValueAtTime(.001,n+.14);
+  o.connect(og).connect(out);
+  o.start(n);o.stop(n+.15)
+ }catch(e){}
+}
+// keep the WebAudio listener on the camera so panning tracks where the player is looking
+function updateAudioListener(){
+ if(!ac||!ac.listener)return;
+ const L=ac.listener,c=camera.position,d=fwd(),t=ac.currentTime;
+ if(L.positionX){L.positionX.setTargetAtTime(c.x,t,.02);L.positionY.setTargetAtTime(c.y,t,.02);L.positionZ.setTargetAtTime(c.z,t,.02);
+  L.forwardX.setTargetAtTime(d.x,t,.02);L.forwardY.setTargetAtTime(d.y,t,.02);L.forwardZ.setTargetAtTime(d.z,t,.02);
+  L.upX.value=0;L.upY.value=1;L.upZ.value=0}
+ else if(L.setPosition){L.setPosition(c.x,c.y,c.z);L.setOrientation(d.x,d.y,d.z,0,1,0)}
+}
 function cycleSnd(){sfx(220,.06,.07,'sawtooth');setTimeout(()=>sfx(330,.05,.06,'sawtooth'),130)}
 function equip(t){if(t===cw||!GUNS[t]||gameOver)return;reloadTok++;reloading=false;lastW=cw;cw=t;equipT=elapsed+GUNS[t].eq;eqShow=true;equipAnim=1;recoilN=0;recAcc=0;pulled=false;setGun(player,t);sfx(520,.05,.05,'square');setTimeout(()=>sfx(380,.06,.05,'square'),90);hud()}
 function spreadNow(){const W=GUNS[cw],mv=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD;return W.sh+(W.sa-W.sh)*adsK+(mv?W.sm*(1-.7*adsK):0)+(grounded?0:.02)+bloom}
@@ -1606,7 +1685,7 @@ function fire(){const W=GUNS[cw],s=inv[cw];
  if(hitAny){$('hit').classList.add('on');setTimeout(()=>$('hit').classList.remove('on'),60);sfx(head?1400:900,.06,.05,'square')}
  const k=W.rk*(1+Math.min(recoilN,12)*W.rg)*(1-.4*adsK);recoilN++;recAcc+=k;pitch=Math.min(1.25,pitch+k);yaw+=(rnd(-W.ry,W.ry)+Math.sin(recoilN*.8)*W.ry*.6)*(1-.4*adsK);
  bloom=Math.min(W.bm,bloom+W.bp);gunKick=1;camKick=Math.min(.35,camKick+W.cb);flash.position.copy(mz);flash.scale.setScalar(W.fs*rnd(.8,1.2));flash.visible=true;flashT=.05;
- gunSnd(cw,1);if(W.cycle)setTimeout(cycleSnd,W.rate*380);
+ gunSnd(cw,1,mz);if(roomCode)send({t:'shot',w:cw,x:Math.round(mz.x*10)/10,y:Math.round(mz.y*10)/10,z:Math.round(mz.z*10)/10});if(W.cycle)setTimeout(cycleSnd,W.rate*380);
  if(killed&&!bots.some(x=>x.alive))finish(true);hud()}
 // build() lives with the shared structure registry (defined above)
 //__BUILD_REMOVED__
@@ -1646,15 +1725,13 @@ if(!gameOver){elapsed+=dt;
  player.rotation.y=Math.PI-yaw;player.rotation.x=state==='fall'?.9:0;
  const mv=(f||s)&&state==='ground';player.userData.legs.forEach((l,i)=>l.rotation.x=mv?Math.sin(elapsed*(keys.ShiftLeft?14:10)+i*Math.PI)*.7:0);
  if(pulled&&elapsed>pullT)pulled=false;{const W=GUNS[cw];if((W.auto?firing:pulled)&&state!=='bus'&&state!=='fall'&&state!=='glide'&&(!reloading||W.shell)&&elapsed>nextShot&&elapsed>=equipT){nextShot=elapsed+W.rate;pulled=false;fire()}}
- // storm
- const st=Math.max(0,elapsed-30),k=Math.min(SR.length-2,Math.floor(st/65)),u=st%65;stormR=st>=65*(SR.length-1)?SR[SR.length-1]:u<35?SR[k]:SR[k]+(SR[k+1]-SR[k])*(u-35)/30;
- stormWall.scale.set(stormR,1,stormR);const sec=Math.ceil(35-u);$('storm').textContent=u<35?`Storm closes in 0:${String(sec).padStart(2,'0')}`:'Storm is closing!';
- if(state==='ground'&&Math.hypot(p.x,p.z)>stormR)hurt(dt*(2+k*2));
+ // storm: a seeded plan of safe circles, silent for the first minute
+ updateZones(dt);
  chestTick(dt,p);
  // pickups
  for(const q of pots){if(!q.visible)continue;q.rotation.y+=dt*2;q.position.y+=Math.sin(elapsed*3+q.position.x)*.004;if(Math.hypot(q.position.x-p.x,q.position.z-p.z)<2.2&&Math.abs(q.position.y-p.y)<3.5&&sh<100){q.visible=false;sh=Math.min(100,sh+50);sfx(700,.2,.06,'sine');hud()}}
  // bots: simulated on the host, mirrored from the host on every other client
- botTick(dt);netBotTick(dt);
+ botTick(dt);netBotTick(dt);teamHudTick(dt);updateAudioListener();
  $('bots').textContent=enemiesLeft()+matesLeft()+1;drawMini(stormR);if(mapOpen)drawBigMap()}
 if(!inMenu){updateRemotes(dt);netSync()}
 weaponTick(dt);for(let i=tracers.length-1;i>=0;i--){const t=tracers[i];t.life-=dt;if(t.life<=0){scene.remove(t.m);tracers.splice(i,1)}}
@@ -1683,7 +1760,9 @@ function remoteFor(id,name,team){let r=remotes.get(id);
  if(r){if(name&&name!==r.name){r.name=name;if(r.tag)r.g.remove(r.tag);r.g.add(r.tag=labelSprite(name));r.tag.userData.nm=name}
   if(team)r.team=team;return r}
  const o=outfits[[...String(id)].reduce((a,ch)=>a+ch.charCodeAt(0),0)%outfits.length];
- const g=makeSod(o[0],o[1],o[2]);g.visible=false;const tag=labelSprite(name||'Sod');g.add(tag);scene.add(g);
+ const g=makeSod(o[0],o[1],o[2]);g.visible=false;const tag=labelSprite(name||'Sod');g.add(tag);
+ if((team||1)===myTeam)g.add(allyMark());
+ scene.add(g);
  r={id,name:name||'Sod',team:team||1,alive:true,st:'bus',tx:0,ty:0,tz:0,tyaw:0,g,tag,t:0};remotes.set(id,r);return r}
 function dropRemote(id){const r=remotes.get(id);if(!r)return;scene.remove(r.g);remotes.delete(id)}
 function markRemote(id,alive){const r=remotes.get(id);if(r){r.alive=alive;if(!alive)r.g.visible=false}}
@@ -1764,7 +1843,7 @@ function startMatch(seed,mode,humans){
  state='bus';busT=0;elapsed=0;gameOver=false;hp=100;sh=0;mats=300;kills=0;$('kills').textContent=0;
  for(const k of ORD){inv[k].mag=GUNS[k].mag}res.light=150;res.med=180;res.shell=36;res.heavy=25;
  cw='ar';setGun(player,'ar');player.position.copy(busA);player.visible=true;
- stormR=SR[0];stormWall.scale.set(SR[0],1,SR[0]);
+ resetZones();resetWeaponState();renderTeamHud();
  for(const c of chests){c.open=false;c.t=0;c.hinge.rotation.x=0;c.beam.visible=true}
  for(const q of pots)q.visible=true;
  $('feed').innerHTML='';$('prompt').style.display='none';mapOpen=false;$('bigmap').classList.add('hidden');
@@ -1778,7 +1857,7 @@ function resetToLobby(silent){
  reloading=false;bloom=0;recoilN=0;recAcc=0;nearChest=null;gunRot=0;gunKick=0;camKick=0;flashT=0;
  for(const k of ORD){inv[k].mag=GUNS[k].mag}res.light=150;res.med=180;res.shell=36;res.heavy=25;
  cw='ar';setGun(player,'ar');
- player.position.copy(busA);player.visible=true;stormR=SR[0];stormWall.scale.set(SR[0],1,SR[0]);
+ player.position.copy(busA);player.visible=true;resetZones();resetWeaponState();renderTeamHud();
  for(const c of chests){c.open=false;c.t=0;c.hinge.rotation.x=0;c.beam.visible=true}
  for(const q of pots)q.visible=true;
  $('hud').style.display='none';$('message').textContent='Press SPACE to jump off the battle bus!';
@@ -1848,9 +1927,17 @@ function drawBigMap(){
  x.save();x.beginPath();x.arc(mid,mid,R,0,7);x.clip();
  x.drawImage(mapTex,mid-R,mid-R,R*2,R*2);
  const vg=x.createRadialGradient(mid,mid,R*.5,mid,mid,R);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(4,14,26,.45)');x.fillStyle=vg;x.fillRect(0,0,S,S);
- const sr=Math.max(2,stormR*sc);
- x.beginPath();x.rect(0,0,S,S);x.arc(mid,mid,sr,0,Math.PI*2,true);x.fillStyle='rgba(150,86,255,.26)';x.fill();
- x.strokeStyle='#c9a8ff';x.lineWidth=Math.max(2,S*.005);x.beginPath();x.arc(mid,mid,sr,0,Math.PI*2);x.stroke();
+ const sr=Math.max(2,stormR*sc),zox=mid+zoneCur.x*sc,zoz=mid+zoneCur.z*sc;
+ x.save();x.beginPath();x.rect(0,0,S,S);x.arc(zox,zoz,sr,0,Math.PI*2,true);x.fillStyle='rgba(150,86,255,.26)';x.fill();x.restore();
+ x.strokeStyle='#c9a8ff';x.lineWidth=Math.max(2,S*.005);x.beginPath();x.arc(zox,zoz,sr,0,Math.PI*2);x.stroke();
+ // the circle players actually have to reach before this one closes
+ if(zoneNext){const nx=mid+zoneNext.x*sc,nz=mid+zoneNext.z*sc,nr=Math.max(2,zoneNext.r*sc);
+  x.save();x.setLineDash([S*.016,S*.011]);x.strokeStyle='#64e8ff';x.lineWidth=Math.max(2,S*.0046);
+  x.beginPath();x.arc(nx,nz,nr,0,Math.PI*2);x.stroke();x.restore();
+  x.beginPath();x.arc(nx,nz,Math.max(3,S*.0055),0,7);x.fillStyle='#64e8ff';x.fill();
+  const lf=Math.max(9,S/84);x.font='700 '+lf+'px "Trebuchet MS",Arial,sans-serif';x.textAlign='center';
+  x.strokeStyle='rgba(6,20,36,.96)';x.lineWidth=Math.max(3,lf*.5);x.strokeText('NEXT ZONE',nx,nz-nr-Math.max(8,lf*.9));
+  x.fillStyle='#bff4ff';x.fillText('NEXT ZONE',nx,nz-nr-Math.max(8,lf*.9));}
  x.save();x.strokeStyle='rgba(255,210,63,.8)';x.lineWidth=Math.max(2,S*.004);x.setLineDash([S*.018,S*.012]);
  x.beginPath();x.moveTo(mid+busA.x*sc,mid+busA.z*sc);x.lineTo(mid+busE.x*sc,mid+busE.z*sc);x.stroke();x.restore();
  const fs=Math.max(11,S/58);
@@ -1886,7 +1973,7 @@ function drawBigMap(){
  x.beginPath();x.arc(cx,cy,cr,0,7);x.fillStyle='rgba(6,20,36,.82)';x.fill();x.strokeStyle='rgba(126,186,232,.85)';x.lineWidth=2;x.stroke();
  x.beginPath();x.moveTo(cx,cy-cr*.72);x.lineTo(cx-cr*.34,cy+cr*.34);x.lineTo(cx,cy+cr*.08);x.lineTo(cx+cr*.34,cy+cr*.34);x.closePath();x.fillStyle='#ff5a65';x.fill();
  x.textAlign='center';x.fillStyle='#fff';x.font='900 '+Math.max(9,S/82)+'px Arial,sans-serif';x.fillText('N',cx,cy+cr*.62);
- $('bmStorm').textContent=state==='ground'?(Math.hypot(pp.x,pp.z)>stormR?'IN THE STORM \u2014 GET INSIDE':'safe inside the storm'):'riding the bus';
+ $('bmStorm').textContent=(state==='ground'?(Math.hypot(pp.x-zoneCur.x,pp.z-zoneCur.z)>stormR?'IN THE STORM \u2014 GET INSIDE':'safe inside the storm'):'riding the bus')+(zoneActive?'':' \u00b7 storm starts in '+mmss(ZONE_WAIT-elapsed));
 }
 // ---------- minimap: live terrain preview, rotates with you, labels the POIs ----------
 drawMini=function(sr){
@@ -1898,7 +1985,8 @@ drawMini=function(sr){
  mini.save();mini.beginPath();mini.arc(S/2,S/2,S/2-1,0,7);mini.clip();
  mini.translate(S/2,S/2);mini.rotate(-yaw);
  mini.drawImage(miniTex,-(p.x+MAPR)*sc,-(p.z+MAPR)*sc,512*sc/T,512*sc/T);
- mini.strokeStyle='#c9a8ff';mini.lineWidth=3;mini.beginPath();mini.arc(-p.x*sc,-p.z*sc,sr*sc,0,7);mini.stroke();
+ mini.strokeStyle='#c9a8ff';mini.lineWidth=3;mini.beginPath();mini.arc((zoneCur.x-p.x)*sc,(zoneCur.z-p.z)*sc,sr*sc,0,7);mini.stroke();
+ if(zoneNext){mini.save();mini.setLineDash([7,5]);mini.strokeStyle='#64e8ff';mini.lineWidth=2;mini.beginPath();mini.arc((zoneNext.x-p.x)*sc,(zoneNext.z-p.z)*sc,zoneNext.r*sc,0,7);mini.stroke();mini.restore()}
  mini.strokeStyle='rgba(255,210,63,.85)';mini.lineWidth=2;mini.beginPath();
  mini.moveTo((busA.x-p.x)*sc,(busA.z-p.z)*sc);mini.lineTo((busE.x-p.x)*sc,(busE.z-p.z)*sc);mini.stroke();
  mini.fillStyle='#ffd23f';mini.fillRect((bus.position.x-p.x)*sc-3,(bus.position.z-p.z)*sc-3,6,6);
@@ -1934,9 +2022,10 @@ function onMessage(m){switch(m.t){
   syncRemotes();renderParty();break;
  case 'countdown':cdEnd=m.endsAt||0;runCountdown();renderParty();break;
  case 'start':cdEnd=0;stopCountdown();renderParty();startMatch(m.seed||(Math.random()*1e9|0),m.mode||TEAM_SIZE,members.length||1);break;
- case 'state':{const mem=members.find(x=>x.id===m.id);const r=remoteFor(m.id,m.name,mem&&mem.team);r.tx=m.x||0;r.ty=m.y||0;r.tz=m.z||0;r.tyaw=m.yaw||0;r.st=m.st||'ground';r.alive=m.alive!==false;break}
+ case 'state':{const mem=members.find(x=>x.id===m.id);const r=remoteFor(m.id,m.name,mem&&mem.team);r.tx=m.x||0;r.ty=m.y||0;r.tz=m.z||0;r.tyaw=m.yaw||0;r.st=m.st||'ground';r.alive=m.alive!==false;r.hp=m.hp===undefined?r.hp:m.hp;break}
+ case 'shot':if(m.w&&GUNS[m.w])gunSnd(m.w,1,new V(+m.x||0,+m.y||0,+m.z||0));break;
  case 'hit':hurt(Math.max(1,m.dmg||10));break;
- case 'died':markRemote(m.id,false);feed((m.name||'A player')+' was eliminated');break;
+ case 'died':markRemote(m.id,false);feed((m.name||'A player')+' was eliminated');renderTeamHud();break;
  case 'tolobby':stopCountdown();resetToLobby(true);netNote((m.by?escHtml(m.by)+' sent the party back to the lobby':'Back in the lobby')+' \u2014 ready up again');break;
  case 'notice':if(m.msg)netNote(m.msg);break;
  default:if(m&&m.t)handleShared(m);break}}
@@ -2020,6 +2109,155 @@ addEventListener('keydown',e=>{
  if(e.code==='Escape'&&!inMenu&&matchStarted&&!gameOver&&overlay.style.display==='none'){e.preventDefault();setFrom='pause';buildSettings();show('settings')}});
 {const bs=$('bskill');if(bs)bs.onclick=e=>{const b=e.target.closest('[data-s]');if(!b)return;setBotSkill(b.dataset.s,true);sfx(620,.06,.05,'square')}}
 addEventListener('blur',()=>{firing=false;adsOn=false});
+// ================= STORM / ZONE SYSTEM =================
+/* The first minute of a match is quiet: no wall, no damage, just a countdown. At 1:00 the storm
+   appears and the circle walks through a plan generated from the match seed, so every client and
+   every bot sees the exact same zones. Centres drift away from the island middle, which means a
+   round can close on a corner, an edge, a town or open ground instead of always the centre. */
+const ZONE_WAIT=60, ZONE_HOLD=38, ZONE_SHRINK=27;
+let zonePlan=[],zoneCur={x:0,z:0,r:380},zoneNext=null,zoneIdx=0,zoneActive=false,zoneShrinking=false,zoneT=0;
+const mmss=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+
+// one plan per match, built from the same seed the bus uses
+function zonePlanFor(seed){
+ const R=seedRnd((seed^0x7a5b1c)>>>0),plan=[{x:0,z:0,r:SR[0]}];
+ for(let i=1;i<SR.length;i++){
+  const prev=plan[i-1],r=SR[i],maxD=Math.max(0,prev.r-r);
+  let best=null,bestScore=-1e9;
+  for(let k=0;k<90;k++){
+   const a=R()*6.2832,d=maxD*(.22+R()*.78),x=prev.x+Math.cos(a)*d,z=prev.z+Math.sin(a)*d;
+   if(Math.abs(x)>HALF-30||Math.abs(z)>HALF-30)continue;      // stay inside the playable island
+   let ok=H(x,z)>-5;
+   // the small circles have to be walkable all the way round, not a lake with a beach
+   if(ok&&r<=160)for(let q=0;q<6;q++){const qa=q*1.0472;if(H(x+Math.cos(qa)*r*.82,z+Math.sin(qa)*r*.82)<-9){ok=false;break}}
+   if(!ok)continue;
+   const score=H(x,z)*.06+R();                               // land, but still random
+   if(score>bestScore){bestScore=score;best=[x,z]}
+  }
+  if(!best)best=[prev.x*.55,prev.z*.55];
+  plan.push({x:best[0],z:best[1],r});
+ }
+ return plan;
+}
+
+// ---- the rings drawn in the world: the storm edge and the next safe zone ----
+const zoneRing=new THREE.Mesh(new THREE.TorusGeometry(1,.010,6,192),new THREE.MeshBasicMaterial({color:0xc9a8ff,transparent:true,opacity:.9,depthWrite:false}));
+zoneRing.rotation.x=-Math.PI/2;zoneRing.position.y=1.4;zoneRing.visible=false;scene.add(zoneRing);
+const zoneNextRing=new THREE.Mesh(new THREE.TorusGeometry(1,.012,6,192),new THREE.MeshBasicMaterial({color:0x64e8ff,transparent:true,opacity:.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+zoneNextRing.rotation.x=-Math.PI/2;zoneNextRing.position.y=1.6;zoneNextRing.visible=false;scene.add(zoneNextRing);
+
+function resetZones(){
+ zonePlan=[];zoneCur={x:0,z:0,r:SR[0]};zoneNext=null;zoneIdx=0;zoneActive=false;zoneShrinking=false;zoneT=0;
+ stormR=SR[0];stormWall.visible=false;stormWall.position.set(0,40,0);stormWall.scale.set(SR[0],1,SR[0]);
+ zoneRing.visible=false;zoneNextRing.visible=false;
+ const box=$('zoneHud');if(box)box.className='wait';
+ zoneHud('STORM IN 1:00','wait');
+}
+function zoneHud(txt,cls){
+ const el=$('zoneTxt');if(el)el.textContent=txt;
+ const leg=$('storm');if(leg)leg.textContent=zoneActive?('ZONE '+(zoneIdx+1)+' \u00b7 '+Math.round(stormR)+'m'):txt;
+ const box=$('zoneHud');if(box&&box.className!==cls)box.className=cls;
+ const sub=$('zoneSub');if(!sub)return;
+ const p=player.position,pd=Math.hypot(p.x-zoneCur.x,p.z-zoneCur.z);
+ if(zoneActive&&pd>stormR)sub.textContent='OUTSIDE \u00b7 '+Math.round(pd-stormR)+'m TO SAFETY';
+ else if(zoneNext)sub.textContent='ZONE '+Math.min(zoneIdx+1,zonePlan.length-1)+'/'+(zonePlan.length-1)+' \u00b7 '+Math.round(Math.hypot(p.x-zoneNext.x,p.z-zoneNext.z))+'m TO NEXT';
+ else sub.textContent='SAFE ZONE '+(zoneIdx+1)+'/'+(zonePlan.length-1);
+}
+function updateZones(dt){
+ if(!zonePlan.length)zonePlan=zonePlanFor(matchSeed||1);
+ const t=elapsed-ZONE_WAIT;
+ // ---- the quiet minute: nothing closes, nothing hurts ----
+ if(t<0){
+  zoneActive=false;zoneShrinking=false;zoneIdx=0;zoneNext=zonePlan[1]||null;zoneT=-t;
+  zoneCur={x:zonePlan[0].x,z:zonePlan[0].z,r:zonePlan[0].r};stormR=zoneCur.r;
+  stormWall.visible=false;zoneRing.visible=false;
+  zoneNextRing.visible=!!zoneNext;if(zoneNext){zoneNextRing.position.set(zoneNext.x,1.6,zoneNext.z);zoneNextRing.scale.set(zoneNext.r,zoneNext.r,1)}
+  zoneHud('STORM IN '+mmss(zoneT),'wait');
+  return;
+ }
+ // ---- phase k: hold at circle k while the next one is previewed, then close onto it ----
+ zoneActive=true;
+ const per=ZONE_HOLD+ZONE_SHRINK,lastK=zonePlan.length-2,k=Math.min(lastK,Math.floor(t/per)),u=t-k*per;
+ const cur=zonePlan[k],nxt=zonePlan[k+1];zoneIdx=k;zoneNext=nxt;
+ if(u<ZONE_HOLD){
+  zoneShrinking=false;zoneCur={x:cur.x,z:cur.z,r:cur.r};zoneT=ZONE_HOLD-u;
+  zoneHud('NEXT ZONE '+mmss(zoneT),'safe');
+ }else{
+  zoneShrinking=true;
+  const f=Math.min(1,(u-ZONE_HOLD)/ZONE_SHRINK),e=f*f*(3-2*f);
+  zoneCur={x:cur.x+(nxt.x-cur.x)*e,z:cur.z+(nxt.z-cur.z)*e,r:cur.r+(nxt.r-cur.r)*e};
+  zoneT=ZONE_SHRINK-(u-ZONE_HOLD);
+  zoneHud('STORM CLOSING \u00b7 '+mmss(zoneT),'closing');
+ }
+ stormR=zoneCur.r;
+ stormWall.visible=true;stormWall.position.set(zoneCur.x,40,zoneCur.z);stormWall.scale.set(stormR,1,stormR);
+ zoneRing.visible=true;zoneRing.position.set(zoneCur.x,1.4,zoneCur.z);zoneRing.scale.set(stormR,stormR,1);
+ zoneNextRing.visible=true;zoneNextRing.position.set(nxt.x,1.6,nxt.z);zoneNextRing.scale.set(nxt.r,nxt.r,1);
+ zoneNextRing.material.opacity=.4+.35*Math.sin(performance.now()/320);
+ // ---- damage: only once the storm is actually live, only while on the ground ----
+ const p=player.position,pd=Math.hypot(p.x-zoneCur.x,p.z-zoneCur.z);
+ if(state==='ground'&&!gameOver&&pd>stormR){
+  hurt(dt*(2+k*2));
+  if(!gameOver&&pd>stormR){const box=$('zoneHud');if(box)box.className='danger'}
+ }
+}
+// helpers for bots and the map
+const zoneDist=(x,z)=>Math.hypot(x-zoneCur.x,z-zoneCur.z);
+const zoneOutside=(x,z)=>zoneActive&&zoneDist(x,z)>stormR-6;
+// ================= TEAM ID, LEAVE MATCH, ROUND RESET =================
+/* Between rounds the only thing that has to survive is the world. Weapon timing does not: the
+   firing gates compare against `elapsed`, which restarts at 0 every match, so any leftover
+   nextShot / equipT / lastShotT from the old round would block firing until the new clock caught
+   up - that was the "guns stop working after a lobby trip" bug. Everything here is reset together. */
+function resetWeaponState(){
+ firing=false;pulled=false;pullT=0;nextShot=0;lastShotT=-9;equipT=0;eqShow=false;dryT=0;
+ bloom=0;recoilN=0;recAcc=0;gunKick=0;camKick=0;equipAnim=0;gunRot=0;curSp=.01;flashT=0;
+ reloading=false;reloadTok++;lastW=cw;
+ if(typeof flash!=='undefined'&&flash)flash.visible=false;
+}
+
+// ---- who is on my team, human or bot ----
+function teamMates(){
+ const out=[];
+ for(const r of remotes.values())if(r.team===myTeam&&r.id!==myId)out.push({name:r.name,hp:r.hp===undefined?100:r.hp,alive:r.alive,bot:false});
+ for(const b of bots)if(b.team===myTeam)out.push({name:b.name,hp:b.hp,alive:b.alive,bot:true});
+ return out;
+}
+function renderTeamHud(){
+ const box=$('teamHud');if(!box)return;
+ if(!matchStarted||gameOver||TEAM_SIZE<2||inMenu){box.classList.add('hidden');box.innerHTML='';return}
+ const list=teamMates(),alive=list.filter(m=>m.alive).length+1,col='#'+teamColor(myTeam).toString(16).padStart(6,'0');
+ box.classList.remove('hidden');
+ box.innerHTML='<div class="tHead"><i style="background:'+col+'"></i>TEAM '+myTeam+'<span>'+alive+' ALIVE</span></div>'+
+  list.slice(0,5).map(m=>'<div class="tRow'+(m.alive?'':' out')+'"><span class="tName">'+escHtml(shortName(m.name,10))+
+   (m.bot?'<em>BOT</em>':'')+'</span><b class="tHp"><i style="width:'+Math.max(0,Math.min(100,m.hp))+'%"></i></b></div>').join('');
+}
+let teamHudT=0;
+function teamHudTick(dt){teamHudT-=dt;if(teamHudT>0)return;teamHudT=.25;renderTeamHud()}
+
+// ---- the green chevron that marks a squadmate in the world ----
+function allyMark(){
+ const m=new THREE.Mesh(new THREE.ConeGeometry(.22,.34,4),new THREE.MeshBasicMaterial({color:0x6ef07a,transparent:true,opacity:.92,depthWrite:false}));
+ m.rotation.x=Math.PI;m.position.y=3.25;m.userData.ally=1;return m;
+}
+
+// ---- leave match ----
+function leaveMatch(){
+ if(!matchStarted){show('menu');return}
+ try{send({t:'leave'})}catch(e){}
+ feed('You left the match');
+ resetToLobby(true);
+ show('menu');
+}
+{
+ const open=$('leaveMatchBtn');
+ if(open)open.onclick=()=>{if(!matchStarted)return;show('leaveConfirm')};
+ const yes=$('leaveYes');if(yes)yes.onclick=()=>leaveMatch();
+ const no=$('leaveNo');if(no)no.onclick=()=>show('settings');
+}
+addEventListener('keydown',e=>{
+ if(e.code==='Escape'&&matchStarted&&!inMenu&&!gameOver&&!$('leaveConfirm').classList.contains('hidden')){e.preventDefault();show('settings')}
+});
 animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();lobbyCam.aspect=innerWidth/innerHeight;lobbyCam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script>
