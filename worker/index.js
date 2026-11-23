@@ -7,7 +7,7 @@
 // Bindings (see wrangler.toml): PARTY (Durable Object), ASSETS (static site).
 
 const MAX_PLAYERS = 10;
-const MAX_MESSAGE = 800;
+const MAX_MESSAGE = 1400;
 
 const num = v => (typeof v === 'number' && isFinite(v) ? Math.round(v * 100) / 100 : 0);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -139,6 +139,39 @@ export class Party {
           });
         break;
       }
+      // ---- shared match state: host-authoritative bots and player-built structures ----
+      case 'bs': {
+        // compact bot snapshot from the host: [[id,team,x,y,z,yaw,state,hp,weapon,alive],...]
+        if (!Array.isArray(m.a) || m.a.length > 14) return;
+        this.relay(member, { t: 'bs', a: m.a });
+        break;
+      }
+      case 'build': {
+        if (typeof m.i !== 'string' || ['w', 'f', 'r'].indexOf(m.k) < 0) return;
+        this.relay(member, {
+          t: 'build',
+          i: m.i.slice(0, 24),
+          k: m.k,
+          x: num(m.x), y: num(m.y), z: num(m.z),
+          yw: num(m.yw),
+          tm: clamp(Math.round(Number(m.tm) || 1), 1, 6),
+        });
+        break;
+      }
+      case 'sdam':
+        this.relay(member, { t: 'sdam', i: String(m.i).slice(0, 24), d: clamp(num(m.d) || 0, 0, 400) });
+        break;
+      case 'sdel':
+        this.relay(member, { t: 'sdel', i: String(m.i).slice(0, 24) });
+        break;
+      case 'bhit':
+        this.relay(member, {
+          t: 'bhit',
+          id: Math.round(Number(m.id) || 0),
+          d: clamp(num(m.d) || 1, 1, 70),
+          from: member.name,
+        });
+        break;
       case 'died': {
         if (member.alive) {
           member.alive = false;
@@ -176,7 +209,7 @@ export class Party {
       ready: m.ready,
       host: m.host,
       alive: m.alive,
-      team: 1 + Math.floor(i / mode),
+      team: 1, // a party is one squad: every member shares the same team id
       mode,
     }));
   }
