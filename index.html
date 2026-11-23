@@ -304,7 +304,7 @@ button{font-family:inherit;font-weight:900;letter-spacing:.04em;border:0;backgro
    <button class="tab" type="button">STATS</button>
   </nav>
   <div class="topRight">
-   <div id="seasonTimer"><b id="timerVal">00:00:00:00</b><span>SEASON ENDS</span></div>
+   
    <div id="currency" title="Storm Coins"><i>◈</i><b id="coinN">0</b></div>
    <div id="portrait"><div class="face"></div><b class="lvl" id="pLvl">1</b><span class="tag">ESC</span></div>
   </div>
@@ -418,10 +418,58 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(500,32,16),new THREE.ShaderMat
  const tex=new THREE.CanvasTexture(cv),sm=new THREE.SpriteMaterial({map:tex,fog:false,transparent:true,depthWrite:false,opacity:.9});
  for(let i=0;i<80;i++){const cx=rnd(-550,550),cz=rnd(-550,550),cy=rnd(110,190);for(let j=0;j<5;j++){const s=new THREE.Sprite(sm);s.position.set(cx+rnd(-30,30),cy+rnd(-5,5),cz+rnd(-20,20));s.scale.set(rnd(50,90),rnd(22,34),1);scene.add(s)}}}
 // Terrain
-function H(x,z){const h=Math.sin(x*.0075+1)*Math.cos(z*.009)*13+Math.sin(x*.021)*Math.cos(z*.026)*7+Math.sin(x*.052+z*.037)*3+Math.cos(x*.011-z*.017)*9+Math.sin(z*.09)*Math.cos(x*.08)*1.2,d=Math.hypot(x,z);const t=Math.min(1,Math.max(0,(d-30)/40));return h*t*t*(3-2*t)}
+// ---- the island: irregular coast with two ocean bays, ridges, three lakes and flat pads ----
+// [name, x, z, pad radius] -- the same spots the minimap and full map label
+const POIS=[
+ ['SUPER SOD HQ',0,0,40],
+ ['Puddle Plaza',-150,-62,26],
+ ['Mud Flats',-252,176,24],
+ ['Sod Springs',236,196,26],
+ ['Compost Canyon',-214,-216,24],
+ ['Dirt Docks',254,-150,28],
+ ['The Rootworks',22,-300,24],
+ ['Grub Gully',300,44,22],
+ ['Brickyard',-330,-34,22],
+ ['Grassfield',124,318,26]
+];
+const lakeH=(x,z,cx,cz,r,dep)=>{const t=1-Math.hypot(x-cx,z-cz)/r;return t>0?dep*t*t:0};
+function baseH(x,z){
+ const d=Math.hypot(x,z),a=Math.atan2(z,x);
+ // two big bites out of the coastline so the island is not a blob
+ const bay=Math.pow(Math.max(0,Math.cos(a-1.85)),10)*70+Math.pow(Math.max(0,Math.cos(a+1.95)),10)*58;
+ const coast=398+13*Math.sin(a*3+.6)+8*Math.sin(a*5+2.4)+4*Math.sin(a*8-1)-bay;
+ const m=Math.min(1,Math.max(0,(coast-d)/90));
+ let h=-14+m*38;
+ if(m>0){
+  // long ridges and rolling hills, only on land
+  h+=(Math.sin(x*.0082+1.7)*Math.cos(z*.0096-.4)*7
+     +Math.sin(x*.021-1.1)*Math.cos(z*.026+.9)*4
+     +Math.sin((x+z)*.047)*2.2
+     +Math.cos(z*.014-x*.007)*3)*m;
+  // lakes carved out of the ridges
+  h-=lakeH(x,z,-70,-150,64,46)+lakeH(x,z,150,95,52,40)+lakeH(x,z,-205,95,44,34);
+ }
+ // flat plateau at the centre so SUPER SOD HQ has level ground
+ const t=Math.min(1,Math.max(0,(d-46)/72)),fs=t*t*(3-2*t);
+ return h*fs;
+}
+// ground height each POI is levelled to (the HQ pad is at 0 by construction)
+const POI_Y=POIS.map((p,i)=>i===0?0:Math.max(2.5,baseH(p[1],p[2])));
+function H(x,z){
+ let h=baseH(x,z);
+ for(let i=0;i<POIS.length;i++){
+  const p=POIS[i],px=p[1],pz=p[2],rad=p[3]*(i===0?1:1.45);
+  const dx=x-px;if(dx>rad||dx<-rad)continue;
+  const dz=z-pz;if(dz>rad||dz<-rad)continue;
+  const dd=Math.hypot(dx,dz);if(dd>=rad)continue;
+  const t=1-dd/rad,w=t*t*(3-2*t);
+  h=h*(1-w)+POI_Y[i]*w;
+ }
+ return h;
+}
 const tg=new THREE.PlaneGeometry(MAP,MAP,320,320);tg.rotateX(-Math.PI/2);
 {const pos=tg.attributes.position,col=new Float32Array(pos.count*3),c=new THREE.Color();
- for(let i=0;i<pos.count;i++){const h=H(pos.getX(i),pos.getZ(i));pos.setY(i,h);c.setHex(h>11?0x9aa0a8:h>7?0x86c04a:h<-5?0xe6cf8f:0x56c24c).offsetHSL(0,0,(Math.random()-.5)*.04);col.set([c.r,c.g,c.b],i*3)}
+ for(let i=0;i<pos.count;i++){const h=H(pos.getX(i),pos.getZ(i));pos.setY(i,h);c.setHex(h>34?0x9aa0a8:h>26?0x86c04a:h<-4?0xe6cf8f:0x56c24c).offsetHSL(0,0,(Math.random()-.5)*.04);col.set([c.r,c.g,c.b],i*3)}
  tg.setAttribute('color',new THREE.BufferAttribute(col,3));tg.computeVertexNormals()}
 const ground=new THREE.Mesh(tg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95}));ground.receiveShadow=true;scene.add(ground);
 const water=new THREE.Mesh(new THREE.PlaneGeometry(MAP*3,MAP*3).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x2fa8e8,roughness:.12,metalness:.15,transparent:true,opacity:.85}));water.position.y=-6.5;scene.add(water);
@@ -430,7 +478,7 @@ const colliders=[],structs=[],thins=[],grid=new Map(),CS=16,EMPTY=[];
 function addC(c){colliders.push(c);const i0=Math.floor((c.x-c.r-1.2)/CS),i1=Math.floor((c.x+c.r+1.2)/CS),j0=Math.floor((c.z-c.r-1.2)/CS),j1=Math.floor((c.z+c.r+1.2)/CS);
  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const k=(i+128)*1024+j+128,a=grid.get(k);a?a.push(c):grid.set(k,[c])}}
 const cellAt=(x,z)=>grid.get((Math.floor(x/CS)+128)*1024+Math.floor(z/CS)+128)||EMPTY;
-const spot=(a,b)=>{let x,z;do{x=rnd(-HALF+10,HALF-10);z=rnd(-HALF+10,HALF-10)}while(Math.hypot(x,z)<a||Math.hypot(x,z)>b||H(x,z)<-5);return[x,z]};
+const spot=(a,b)=>{let x,z;do{x=rnd(-HALF+10,HALF-10);z=rnd(-HALF+10,HALF-10)}while(Math.hypot(x,z)<a||Math.hypot(x,z)>b||H(x,z)<-5||POIS.some(([,qx,qz,qr])=>Math.hypot(x-qx,z-qz)<qr*1.25));return[x,z]};
 const NT=1500,trunks=new THREE.InstancedMesh(new THREE.CylinderGeometry(.35,.5,1,7),mat(0x8d673e),NT),pines=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,8),mat(0xffffff),NT*2),oaks=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),mat(0xffffff),NT);
 trunks.castShadow=pines.castShadow=oaks.castShadow=true;{const o=new THREE.Object3D(),c=new THREE.Color();let np=0,no=0;
  for(let i=0;i<NT;i++){const[x,z]=spot(62,HALF),y=H(x,z),h=rnd(2.5,5),r=rnd(1.8,3.2),set=(m,k,px,py,pz,sx,sy,sz)=>{o.position.set(px,py,pz);o.scale.set(sx,sy,sz);o.updateMatrix();m.setMatrixAt(k,o.matrix)};
@@ -477,19 +525,48 @@ for(let i=0;i<200;i++){let x,z;if(i<130){const t=towns[i%7];do{x=t[0]+rnd(-38,38
  // stairs-ramps up the east side onto the roof
  const ry=H(30.5,0);[[30.5,ry],[26.5,ry+3],[22.5,ry+6]].forEach(([x,y0])=>{const gr=new THREE.Group();gr.position.set(x,y0+1.5,0);gr.rotation.y=-Math.PI/2;const r=new THREE.Mesh(new THREE.BoxGeometry(4,.3,5),mat(0x7be36a));r.rotation.x=-Math.atan(.75);r.castShadow=r.receiveShadow=true;gr.add(r);hq.add(gr);structs.push({k:'r',cx:x,cz:0,dx:-1,dz:0,y0})});
  hq.userData.potions=[[-10,0],[10,0],[-16,-10],[16,10],[-16,10],[16,-10]]}
-// ---- named POIs: shown as landmarks in the world and labelled on the full map (M) ----
-const POIS=[
- ['SUPER SOD HQ',0,0],
- ['Puddle Plaza',-150,-62],
- ['Mud Flats',-252,176],
- ['Sod Springs',236,196],
- ['Compost Canyon',-214,-216],
- ['Dirt Docks',254,-150],
- ['The Rootworks',22,-300],
- ['Grub Gully',300,44],
- ['Brickyard',-330,-34],
- ['Grassfield',124,318]
-];
+// ---- named POIs: each one is a real, built-up place in the world (not just a flag) ----
+function poiRng(seed){let t=(seed>>>0)||1;return()=>{t=(t+0x6D2B79F5)>>>0;let r=Math.imul(t^(t>>>15),1|t);r=(r+Math.imul(r^(r>>>7),61|r))^r;return((r^(r>>>14))>>>0)/4294967296}}
+const POI_PAL=[[0x9c6b3f,0x6b4726],[0x7c8794,0x4b5560],[0xb05f4a,0x7a3d30],[0x5f8f7a,0x3d6152],[0xc2a15a,0x8a6f38]];
+function poiPad(px,pz,gy,r,col){
+ const m=new THREE.Mesh(new THREE.CircleGeometry(r,44).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:col,roughness:.95,polygonOffset:true,polygonOffsetFactor:-2}));
+ m.position.set(px,gy+.05,pz);m.receiveShadow=true;scene.add(m)}
+function poiTower(px,pz,gy,R,pal){
+ const hgt=11+R()*7,rad=1.5+R()*1.1;
+ const shaft=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad*1.15,hgt,14),mat(pal[0]));
+ shaft.position.set(px,gy+hgt/2,pz);shaft.castShadow=shaft.receiveShadow=true;scene.add(shaft);
+ const band=new THREE.Mesh(new THREE.CylinderGeometry(rad*1.06,rad*1.06,.7,14),mat(0xffd23f));
+ band.position.set(px,gy+hgt*.66,pz);band.castShadow=true;scene.add(band);
+ const cap=new THREE.Mesh(new THREE.ConeGeometry(rad*1.5,2.6,14),mat(0x8a3f3f));
+ cap.position.set(px,gy+hgt+1.1,pz);cap.castShadow=true;scene.add(cap);
+ addC({x:px,z:pz,r:rad*1.2,b:-1e9,t:gy+hgt})}
+POIS.forEach(([nm,px,pz,rad],idx)=>{
+ if(idx===0)return;                       // SUPER SOD HQ is already built by hand
+ const R=poiRng(1337+idx*7919),gy=POI_Y[idx];
+ poiPad(px,pz,gy,rad*1.02,0xbfae8a);
+ const n=4+Math.floor(R()*3);
+ for(let i=0;i<n;i++){
+  const a=(i/n)*6.2832+R()*.6,dist=rad*(.52+R()*.34);
+  const bx=px+Math.cos(a)*dist,bz=pz+Math.sin(a)*dist;
+  const fl=1+Math.floor(R()*3),w=4.4+R()*2.6,hh=fl*3.1+2.1,pal=POI_PAL[(idx+i)%POI_PAL.length],top=gy+hh;
+  box(bx,top-hh/2,bz,w,hh,w,pal[0]);
+  box(bx,top+.16,bz,w+.7,.42,w+.7,pal[1]);
+  box(bx+Math.cos(a)*(w/2+.06),gy+1.15,bz+Math.sin(a)*(w/2+.06),1.1,2.3,.16,0x2c2119);
+  for(let k=0;k<fl;k++)for(const s of[-1,1])
+   box(bx+Math.cos(a+1.5708)*s*w*.3,gy+1.95+k*3.1,bz+Math.sin(a+1.5708)*s*w*.3,.95,.9,.95,0xbfe6ff);
+  const rf=new THREE.Mesh(new THREE.ConeGeometry(w*.82,2.2,4),mat(pal[1]));
+  rf.position.set(bx,top+1.45,bz);rf.rotation.y=Math.PI/4;rf.castShadow=true;scene.add(rf);
+  addC({x:bx,z:bz,r:w*.72,b:-1e9,t:top});
+  structs.push({k:'f',cx:bx,cz:bz,dx:1,dz:0,y0:top+.3,hw:w/2+.3});
+ }
+ poiTower(px,pz,gy,R,POI_PAL[idx%POI_PAL.length]);
+ for(let i=0;i<4;i++){
+  const a=R()*6.2832,d=rad*(.3+R()*.45),cx=px+Math.cos(a)*d,cz=pz+Math.sin(a)*d,s=.9+R()*.5;
+  box(cx,gy+s*.5,cz,s,s,s,0x8a6a3f);
+  addC({x:cx,z:cz,r:s*.7,b:-1e9,t:gy+s});
+ }
+});
+// a flag, ring and plate at every POI so the place reads from the air too
 for(const[nm,px,pz]of POIS){if(Math.hypot(px,pz)<40)continue;
  const gy=H(px,pz),g=new THREE.Group();g.position.set(px,gy,pz);scene.add(g);
  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,9.5,8),mat(0x6b4f2a));pole.position.y=4.7;pole.castShadow=true;g.add(pole);
@@ -716,7 +793,7 @@ function setOutfit(c){paintOutfit(player,curShirt,c);paintOutfit(lobbyHero,curSh
 function tickSeason(){const now=new Date(),end=new Date(now.getFullYear(),now.getMonth()+1,1);let s=Math.max(0,Math.floor((end-now)/1000));
  const d=String(Math.floor(s/86400)).padStart(2,'0');s%=86400;const h=String(Math.floor(s/3600)).padStart(2,'0');s%=3600;
  $('timerVal').textContent=d+':'+h+':'+String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
-renderMeta();tickSeason();setInterval(tickSeason,1000);
+renderMeta();
 // ================= LOCKER =================
 const RAR={c:['COMMON','#9aa7b4'],u:['UNCOMMON','#4fd14f'],r:['RARE','#3aa0ff'],e:['EPIC','#b457ff'],l:['LEGENDARY','#ff9a2e']},hx=c=>'#'+c.toString(16).padStart(6,'0'),
 LV=()=>1+Math.floor((META.wins*300+META.kills*20+META.top10*60)/1000),
@@ -1099,61 +1176,63 @@ function resetToLobby(silent){
  renderParty();renderLobbyParty();dress(lobbyHero,LKS);dress(player,LKS);
 }
 
-// ---------- full screen map (M): round bird's-eye of the first storm circle ----------
-const MAPR=SR[0],MAPN=1152,mapMix=(a,b,t)=>a+(b-a)*t;
-let mapTex=null;
+// ---------- map textures: baked from the live island terrain ----------
+const MAPR=SR[0],mapMix=(a,b,t)=>a+(b-a)*t;
+let mapTex=null,miniTex=null;
 const mapHash=(i,j)=>{const s=Math.sin(i*12.9898+j*78.233)*43758.5453;return s-Math.floor(s)};
 function toggleMap(force){mapOpen=force===undefined?!mapOpen:!!force;
  $('bigmap').classList.toggle('hidden',!mapOpen);
  if(mapOpen){const c=$('bigmapC'),S=Math.max(320,Math.round(Math.min(innerWidth,innerHeight)*.9));c.width=c.height=S;drawBigMap()}}
-// same height ramp the 3D terrain uses: sand -> grass -> high grass -> rock
+// the same height bands the 3D terrain uses: deep water -> sand -> green -> high grass -> rock
 function mapColor(h){let r,g,b;
  if(h<-6.5){const t=Math.min(1,(-6.5-h)/20);r=mapMix(54,10,t);g=mapMix(160,54,t);b=mapMix(200,98,t)}
- else if(h<-3.6){const t=(h+6.5)/2.9;r=mapMix(233,220,t);g=mapMix(219,204,t);b=mapMix(172,150,t)}
- else if(h<7){const t=Math.min(1,(h+3.6)/10.6);r=mapMix(98,84,t);g=mapMix(188,198,t);b=mapMix(86,74,t)}
- else if(h<11){const t=(h-7)/4;r=mapMix(132,150,t);g=mapMix(192,196,t);b=mapMix(76,88,t)}
- else{const t=Math.min(1,(h-11)/7);r=mapMix(138,170,t);g=mapMix(144,172,t);b=mapMix(150,176,t)}
+ else if(h<-4){const t=(h+6.5)/2.5;r=mapMix(233,220,t);g=mapMix(219,204,t);b=mapMix(172,150,t)}
+ else if(h<26){const t=Math.min(1,(h+4)/30);r=mapMix(98,84,t);g=mapMix(188,198,t);b=mapMix(86,74,t)}
+ else if(h<34){const t=(h-26)/8;r=mapMix(132,150,t);g=mapMix(192,196,t);b=mapMix(76,88,t)}
+ else{const t=Math.min(1,(h-34)/10);r=mapMix(138,170,t);g=mapMix(144,172,t);b=mapMix(150,176,t)}
  return[r,g,b]}
-// sample H(x,z) once per 2px block over the storm-1 disc, hillshade it, then stamp towns and HQ
-function bakeMap(){
- const cv=document.createElement('canvas');cv.width=cv.height=MAPN;
- const x=cv.getContext('2d'),step=2,G=MAPN/step,span=2*MAPR,wpx=span/G,hs=new Float32Array(G*G);
+// sample H(x,z) over the storm-1 disc, hillshade it, then stamp towns, POIs and the HQ
+function bakeMap(N){
+ const cv=document.createElement('canvas');cv.width=cv.height=N;
+ const x=cv.getContext('2d'),step=2,G=N/step,span=2*MAPR,wpx=span/G,hs=new Float32Array(G*G);
  for(let j=0;j<G;j++){const wz=((j+.5)/G-.5)*span;for(let i=0;i<G;i++)hs[j*G+i]=H(((i+.5)/G-.5)*span,wz)}
- const img=x.createImageData(MAPN,MAPN),d=img.data;
+ const img=x.createImageData(N,N),d=img.data;
  for(let j=0;j<G;j++)for(let i=0;i<G;i++){
   const h=hs[j*G+i];
   const hx=(hs[j*G+(i<G-1?i+1:i)]-hs[j*G+(i?i-1:i)])/(2*wpx),hz=(hs[(j<G-1?j+1:j)*G+i]-hs[(j?j-1:j)*G+i])/(2*wpx);
   let c=mapColor(h),r=c[0],g=c[1],b=c[2];
   if(h>=-6.5){let sh=.92-(hx*.62+hz*.55)*.95;sh=sh<.6?.6:sh>1.3?1.3:sh;sh*=1+(mapHash(i,j)-.5)*.09;r*=sh;g*=sh;b*=sh}
   r=r<0?0:r>255?255:r|0;g=g<0?0:g>255?255:g|0;b=b<0?0:b>255?255:b|0;
-  for(let py=0;py<step;py++)for(let px=0;px<step;px++){const o=((j*step+py)*MAPN+(i*step+px))*4;d[o]=r;d[o+1]=g;d[o+2]=b;d[o+3]=255}
+  for(let py=0;py<step;py++)for(let px=0;px<step;px++){const o=((j*step+py)*N+(i*step+px))*4;d[o]=r;d[o+1]=g;d[o+2]=b;d[o+3]=255}
  }
  x.putImageData(img,0,0);
- const sc=MAPN/span,P=w=>(w+MAPR)*sc;
+ const sc=N/span,P=w=>(w+MAPR)*sc;
  for(const s of structs){if(s.k!=='f'||s.hw==null)continue;const w=Math.max(2.5,s.hw*2*sc),X=P(s.cx)-w/2,Y=P(s.cz)-w/2;
   x.fillStyle='rgba(238,233,218,.92)';x.fillRect(X,Y,w,w);
   x.strokeStyle='rgba(58,50,42,.5)';x.lineWidth=1;x.strokeRect(X,Y,w,w)}
+ // built-up POIs: tan pad plus the landmark tower
+ for(let i=1;i<POIS.length;i++){const[,px,pz,rad]=POIS[i],X=P(px),Y=P(pz);
+  x.beginPath();x.arc(X,Y,rad*.95*sc,0,7);x.fillStyle='rgba(191,174,138,.9)';x.fill();
+  x.strokeStyle='rgba(92,74,48,.55)';x.lineWidth=1;x.stroke();
+  x.beginPath();x.arc(X,Y,Math.max(1.6,2.2*sc),0,7);x.fillStyle='#6b4726';x.fill()}
  x.beginPath();x.arc(P(0),P(0),30*sc,0,7);x.fillStyle='rgba(208,215,188,.95)';x.fill();
  x.strokeStyle='rgba(255,210,63,.9)';x.lineWidth=Math.max(2,sc*2.4);x.stroke();
  x.fillStyle='rgba(68,166,77,.95)';x.fillRect(P(-20.5),P(-14.5),41*sc,29*sc);
  x.strokeStyle='rgba(255,210,63,.95)';x.lineWidth=Math.max(1.5,sc*1.5);x.strokeRect(P(-20.5),P(-14.5),41*sc,29*sc);
  return cv}
 function drawBigMap(){
- if(!mapTex)mapTex=bakeMap();
+ if(!mapTex)mapTex=bakeMap(1152);
  const c=$('bigmapC'),x=c.getContext('2d'),S=c.width,mid=S/2,t=performance.now()/700;
- const R=mid-6,sc=R/MAPR;                      // map edge == first storm circle
+ const R=mid-6,sc=R/MAPR;                      // the map edge is the first storm circle
  x.clearRect(0,0,S,S);x.fillStyle='#061423';x.fillRect(0,0,S,S);
  x.save();x.beginPath();x.arc(mid,mid,R,0,7);x.clip();
  x.drawImage(mapTex,mid-R,mid-R,R*2,R*2);
  const vg=x.createRadialGradient(mid,mid,R*.5,mid,mid,R);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(4,14,26,.45)');x.fillStyle=vg;x.fillRect(0,0,S,S);
- // storm: everything outside the live ring is tinted purple
  const sr=Math.max(2,stormR*sc);
  x.beginPath();x.rect(0,0,S,S);x.arc(mid,mid,sr,0,Math.PI*2,true);x.fillStyle='rgba(150,86,255,.26)';x.fill();
  x.strokeStyle='#c9a8ff';x.lineWidth=Math.max(2,S*.005);x.beginPath();x.arc(mid,mid,sr,0,Math.PI*2);x.stroke();
- // battle bus route
  x.save();x.strokeStyle='rgba(255,210,63,.8)';x.lineWidth=Math.max(2,S*.004);x.setLineDash([S*.018,S*.012]);
  x.beginPath();x.moveTo(mid+busA.x*sc,mid+busA.z*sc);x.lineTo(mid+busE.x*sc,mid+busE.z*sc);x.stroke();x.restore();
- // POI labels
  const fs=Math.max(11,S/58);
  x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';
  for(const[nm,px,pz]of POIS){const X=mid+px*sc,Y=mid+pz*sc;
@@ -1162,13 +1241,11 @@ function drawBigMap(){
   x.font='700 '+fs+'px "Trebuchet MS",Arial,sans-serif';
   x.strokeStyle='rgba(6,20,36,.96)';x.lineWidth=Math.max(3,fs*.44);x.strokeText(nm,X,Y-fs*.95);
   x.fillStyle='#fff';x.fillText(nm,X,Y-fs*.95)}
- // other players
  for(const b of bots){if(!b.alive)continue;x.beginPath();x.arc(mid+b.g.position.x*sc,mid+b.g.position.z*sc,Math.max(2.5,S*.0042),0,7);
   x.fillStyle=b.team===myTeam?'#6ef07a':'#ff5a65';x.fill()}
  for(const r of remotes.values()){if(!r.alive||r.st==='bus')continue;const X=mid+r.g.position.x*sc,Y=mid+r.g.position.z*sc;
   x.beginPath();x.arc(X,Y,Math.max(4,S*.0062),0,7);x.fillStyle=r.team===myTeam?'#6ef07a':'#ff5a65';x.fill();
   x.strokeStyle='#fff';x.lineWidth=Math.max(1.5,S*.0026);x.stroke()}
- // you: view cone, arrow, pulsing ring
  const pp=player.position,X=mid+pp.x*sc,Y=mid+pp.z*sc;
  x.save();x.translate(X,Y);x.rotate(yaw);
  x.beginPath();x.moveTo(0,0);x.arc(0,0,S*.055,-Math.PI/2-.55,-Math.PI/2+.55);x.closePath();x.fillStyle='rgba(255,210,63,.24)';x.fill();
@@ -1178,10 +1255,8 @@ function drawBigMap(){
  x.font='900 '+Math.max(10,S/72)+'px "Trebuchet MS",Arial,sans-serif';x.fillStyle='#ffe071';
  x.strokeStyle='rgba(6,20,36,.96)';x.lineWidth=Math.max(3,S*.005);x.strokeText('YOU',X,Y-S*.034);x.fillText('YOU',X,Y-S*.034);
  x.restore();
- // first storm circle edge (the map boundary) + outer rim
  x.strokeStyle='rgba(255,210,63,.9)';x.lineWidth=Math.max(3,S*.006);x.beginPath();x.arc(mid,mid,R,0,7);x.stroke();
  x.strokeStyle='rgba(6,20,36,.9)';x.lineWidth=Math.max(2,S*.004);x.beginPath();x.arc(mid,mid,R+Math.max(2,S*.004),0,7);x.stroke();
- // title + compass
  const ts=Math.max(16,S/36);x.textAlign='left';x.font='italic 900 '+ts+'px "Trebuchet MS",Arial,sans-serif';
  x.strokeStyle='rgba(6,20,36,.92)';x.lineWidth=Math.max(4,ts*.16);x.strokeText('SODDROP ISLAND',S*.03,S*.06);
  x.fillStyle='#ffe071';x.fillText('SODDROP ISLAND',S*.03,S*.06);
@@ -1193,10 +1268,27 @@ function drawBigMap(){
  x.textAlign='center';x.fillStyle='#fff';x.font='900 '+Math.max(9,S/82)+'px Arial,sans-serif';x.fillText('N',cx,cy+cr*.62);
  $('bmStorm').textContent=state==='ground'?(Math.hypot(pp.x,pp.z)>stormR?'IN THE STORM \u2014 GET INSIDE':'safe inside the storm'):'riding the bus';
 }
-// ---------- minimap: POIs on the rotating HUD map ----------
-const baseDrawMini=drawMini;
-drawMini=function(sr){baseDrawMini(sr);
- const S=170,sc=S/380,p=player.position,a=-yaw,ca=Math.cos(a),sa=Math.sin(a),lim=S/2-9;
+// ---------- minimap: live terrain preview, rotates with you, labels the POIs ----------
+drawMini=function(sr){
+ const S=170,sc=S/380,p=player.position;
+ if(!miniTex)miniTex=bakeMap(512);
+ mini.clearRect(0,0,S,S);
+ mini.fillStyle='#0b3b5c';mini.fillRect(0,0,S,S);
+ const T=512/(2*MAPR);
+ mini.save();mini.beginPath();mini.arc(S/2,S/2,S/2-1,0,7);mini.clip();
+ mini.translate(S/2,S/2);mini.rotate(-yaw);
+ mini.drawImage(miniTex,-(p.x+MAPR)*sc,-(p.z+MAPR)*sc,512*sc/T,512*sc/T);
+ mini.strokeStyle='#c9a8ff';mini.lineWidth=3;mini.beginPath();mini.arc(-p.x*sc,-p.z*sc,sr*sc,0,7);mini.stroke();
+ mini.strokeStyle='rgba(255,210,63,.85)';mini.lineWidth=2;mini.beginPath();
+ mini.moveTo((busA.x-p.x)*sc,(busA.z-p.z)*sc);mini.lineTo((busE.x-p.x)*sc,(busE.z-p.z)*sc);mini.stroke();
+ mini.fillStyle='#ffd23f';mini.fillRect((bus.position.x-p.x)*sc-3,(bus.position.z-p.z)*sc-3,6,6);
+ mini.fillStyle='#ff5a65';for(const b of bots)if(b.alive)mini.fillRect((b.g.position.x-p.x)*sc-2,(b.g.position.z-p.z)*sc-2,4,4);
+ mini.fillStyle='#4fc3ff';for(const q of pots)if(q.visible)mini.fillRect((q.position.x-p.x)*sc-1.5,(q.position.z-p.z)*sc-1.5,3,3);
+ mini.fillStyle='#ffd23f';for(const c of chests)if(!c.open)mini.fillRect((c.x-p.x)*sc-2,(c.z-p.z)*sc-2,4,4);
+ mini.fillStyle='#6ef07a';for(const r of remotes.values())if(r.alive&&r.st!=='bus'){mini.beginPath();
+  mini.arc((r.g.position.x-p.x)*sc,(r.g.position.z-p.z)*sc,3,0,7);mini.fill()}
+ mini.restore();
+ const a=-yaw,ca=Math.cos(a),sa=Math.sin(a),lim=S/2-9;
  for(const[nm,px,pz]of POIS){
   const dx=(px-p.x)*sc,dz=(pz-p.z)*sc;if(Math.hypot(dx,dz)>lim+4)continue;
   const X=S/2+dx*ca-dz*sa,Y=S/2+dx*sa+dz*ca;
@@ -1206,7 +1298,10 @@ drawMini=function(sr){baseDrawMini(sr);
   mini.font='700 7px "Trebuchet MS",Arial,sans-serif';mini.textAlign='center';mini.textBaseline='middle';
   mini.strokeStyle='rgba(6,20,36,.95)';mini.lineWidth=2.5;mini.strokeText(nm2,X,Y-5.5);
   mini.fillStyle='#fff';mini.fillText(nm2,X,Y-5.5);
- }}
+ }
+ mini.strokeStyle='rgba(6,20,36,.7)';mini.lineWidth=4;mini.beginPath();mini.arc(S/2,S/2,S/2-1.5,0,7);mini.stroke();
+ mini.fillStyle='#ffd23f';mini.beginPath();mini.moveTo(S/2,S/2-7);mini.lineTo(S/2-5,S/2+5);mini.lineTo(S/2+5,S/2+5);mini.fill();
+}
 
 // ---------- party socket ----------
 function onMessage(m){switch(m.t){
