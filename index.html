@@ -1099,13 +1099,13 @@ function resetToLobby(silent){
  renderParty();renderLobbyParty();dress(lobbyHero,LKS);dress(player,LKS);
 }
 
-// ---------- full screen map (M): bird's-eye render of the real island ----------
+// ---------- full screen map (M): round bird's-eye of the first storm circle ----------
+const MAPR=SR[0],MAPN=1152,mapMix=(a,b,t)=>a+(b-a)*t;
 let mapTex=null;
+const mapHash=(i,j)=>{const s=Math.sin(i*12.9898+j*78.233)*43758.5453;return s-Math.floor(s)};
 function toggleMap(force){mapOpen=force===undefined?!mapOpen:!!force;
  $('bigmap').classList.toggle('hidden',!mapOpen);
  if(mapOpen){const c=$('bigmapC'),S=Math.max(320,Math.round(Math.min(innerWidth,innerHeight)*.9));c.width=c.height=S;drawBigMap()}}
-const MAPN=1152,mapMix=(a,b,t)=>a+(b-a)*t;
-const mapHash=(i,j)=>{const s=Math.sin(i*12.9898+j*78.233)*43758.5453;return s-Math.floor(s)};
 // same height ramp the 3D terrain uses: sand -> grass -> high grass -> rock
 function mapColor(h){let r,g,b;
  if(h<-6.5){const t=Math.min(1,(-6.5-h)/20);r=mapMix(54,10,t);g=mapMix(160,54,t);b=mapMix(200,98,t)}
@@ -1114,11 +1114,11 @@ function mapColor(h){let r,g,b;
  else if(h<11){const t=(h-7)/4;r=mapMix(132,150,t);g=mapMix(192,196,t);b=mapMix(76,88,t)}
  else{const t=Math.min(1,(h-11)/7);r=mapMix(138,170,t);g=mapMix(144,172,t);b=mapMix(150,176,t)}
  return[r,g,b]}
-// sample H(x,z) once per 2px block, hillshade it, then stamp towns and the HQ pad on top
+// sample H(x,z) once per 2px block over the storm-1 disc, hillshade it, then stamp towns and HQ
 function bakeMap(){
  const cv=document.createElement('canvas');cv.width=cv.height=MAPN;
- const x=cv.getContext('2d'),step=2,G=MAPN/step,wpx=MAP/G,hs=new Float32Array(G*G);
- for(let j=0;j<G;j++){const wz=((j+.5)/G-.5)*MAP;for(let i=0;i<G;i++)hs[j*G+i]=H(((i+.5)/G-.5)*MAP,wz)}
+ const x=cv.getContext('2d'),step=2,G=MAPN/step,span=2*MAPR,wpx=span/G,hs=new Float32Array(G*G);
+ for(let j=0;j<G;j++){const wz=((j+.5)/G-.5)*span;for(let i=0;i<G;i++)hs[j*G+i]=H(((i+.5)/G-.5)*span,wz)}
  const img=x.createImageData(MAPN,MAPN),d=img.data;
  for(let j=0;j<G;j++)for(let i=0;i<G;i++){
   const h=hs[j*G+i];
@@ -1129,7 +1129,7 @@ function bakeMap(){
   for(let py=0;py<step;py++)for(let px=0;px<step;px++){const o=((j*step+py)*MAPN+(i*step+px))*4;d[o]=r;d[o+1]=g;d[o+2]=b;d[o+3]=255}
  }
  x.putImageData(img,0,0);
- const sc=MAPN/MAP,P=w=>(w+MAP/2)*sc;
+ const sc=MAPN/span,P=w=>(w+MAPR)*sc;
  for(const s of structs){if(s.k!=='f'||s.hw==null)continue;const w=Math.max(2.5,s.hw*2*sc),X=P(s.cx)-w/2,Y=P(s.cz)-w/2;
   x.fillStyle='rgba(238,233,218,.92)';x.fillRect(X,Y,w,w);
   x.strokeStyle='rgba(58,50,42,.5)';x.lineWidth=1;x.strokeRect(X,Y,w,w)}
@@ -1140,11 +1140,13 @@ function bakeMap(){
  return cv}
 function drawBigMap(){
  if(!mapTex)mapTex=bakeMap();
- const c=$('bigmapC'),x=c.getContext('2d'),S=c.width,sc=S/MAP,mid=S/2,t=performance.now()/700;
- x.clearRect(0,0,S,S);x.drawImage(mapTex,0,0,S,S);
- const vg=x.createRadialGradient(mid,mid,S*.44,mid,mid,S*.8);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(4,14,26,.5)');x.fillStyle=vg;x.fillRect(0,0,S,S);
- x.strokeStyle='rgba(8,26,44,.95)';x.lineWidth=Math.max(3,S*.008);x.strokeRect(x.lineWidth/2,x.lineWidth/2,S-x.lineWidth,S-x.lineWidth);
- // storm: everything outside the ring is tinted purple
+ const c=$('bigmapC'),x=c.getContext('2d'),S=c.width,mid=S/2,t=performance.now()/700;
+ const R=mid-6,sc=R/MAPR;                      // map edge == first storm circle
+ x.clearRect(0,0,S,S);x.fillStyle='#061423';x.fillRect(0,0,S,S);
+ x.save();x.beginPath();x.arc(mid,mid,R,0,7);x.clip();
+ x.drawImage(mapTex,mid-R,mid-R,R*2,R*2);
+ const vg=x.createRadialGradient(mid,mid,R*.5,mid,mid,R);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(4,14,26,.45)');x.fillStyle=vg;x.fillRect(0,0,S,S);
+ // storm: everything outside the live ring is tinted purple
  const sr=Math.max(2,stormR*sc);
  x.beginPath();x.rect(0,0,S,S);x.arc(mid,mid,sr,0,Math.PI*2,true);x.fillStyle='rgba(150,86,255,.26)';x.fill();
  x.strokeStyle='#c9a8ff';x.lineWidth=Math.max(2,S*.005);x.beginPath();x.arc(mid,mid,sr,0,Math.PI*2);x.stroke();
@@ -1167,7 +1169,7 @@ function drawBigMap(){
   x.beginPath();x.arc(X,Y,Math.max(4,S*.0062),0,7);x.fillStyle=r.team===myTeam?'#6ef07a':'#ff5a65';x.fill();
   x.strokeStyle='#fff';x.lineWidth=Math.max(1.5,S*.0026);x.stroke()}
  // you: view cone, arrow, pulsing ring
- const pp=player.position,X=Math.max(16,Math.min(S-16,mid+pp.x*sc)),Y=Math.max(16,Math.min(S-16,mid+pp.z*sc));
+ const pp=player.position,X=mid+pp.x*sc,Y=mid+pp.z*sc;
  x.save();x.translate(X,Y);x.rotate(yaw);
  x.beginPath();x.moveTo(0,0);x.arc(0,0,S*.055,-Math.PI/2-.55,-Math.PI/2+.55);x.closePath();x.fillStyle='rgba(255,210,63,.24)';x.fill();
  x.beginPath();x.moveTo(0,-S*.02);x.lineTo(-S*.0135,S*.013);x.lineTo(0,S*.005);x.lineTo(S*.0135,S*.013);x.closePath();
@@ -1175,16 +1177,36 @@ function drawBigMap(){
  x.beginPath();x.arc(X,Y,S*.017+Math.abs(Math.sin(t))*S*.007,0,7);x.strokeStyle='rgba(255,232,150,.9)';x.lineWidth=Math.max(2,S*.0042);x.stroke();
  x.font='900 '+Math.max(10,S/72)+'px "Trebuchet MS",Arial,sans-serif';x.fillStyle='#ffe071';
  x.strokeStyle='rgba(6,20,36,.96)';x.lineWidth=Math.max(3,S*.005);x.strokeText('YOU',X,Y-S*.034);x.fillText('YOU',X,Y-S*.034);
+ x.restore();
+ // first storm circle edge (the map boundary) + outer rim
+ x.strokeStyle='rgba(255,210,63,.9)';x.lineWidth=Math.max(3,S*.006);x.beginPath();x.arc(mid,mid,R,0,7);x.stroke();
+ x.strokeStyle='rgba(6,20,36,.9)';x.lineWidth=Math.max(2,S*.004);x.beginPath();x.arc(mid,mid,R+Math.max(2,S*.004),0,7);x.stroke();
  // title + compass
- const ts=Math.max(18,S/32);x.textAlign='left';x.font='italic 900 '+ts+'px "Trebuchet MS",Arial,sans-serif';
- x.strokeStyle='rgba(6,20,36,.92)';x.lineWidth=Math.max(4,ts*.16);x.strokeText('SODDROP ISLAND',S*.035,S*.072);
- x.fillStyle='#ffe071';x.fillText('SODDROP ISLAND',S*.035,S*.072);
- const cx=S-S*.082,cy=S*.09,cr=S*.046;
+ const ts=Math.max(16,S/36);x.textAlign='left';x.font='italic 900 '+ts+'px "Trebuchet MS",Arial,sans-serif';
+ x.strokeStyle='rgba(6,20,36,.92)';x.lineWidth=Math.max(4,ts*.16);x.strokeText('SODDROP ISLAND',S*.03,S*.06);
+ x.fillStyle='#ffe071';x.fillText('SODDROP ISLAND',S*.03,S*.06);
+ x.font='700 '+Math.max(9,S/78)+'px "Trebuchet MS",Arial,sans-serif';x.fillStyle='rgba(158,198,232,.95)';
+ x.fillText('STORM 1 ZONE',S*.03,S*.06+ts*.86);
+ const cx=S-S*.078,cy=S*.085,cr=S*.044;
  x.beginPath();x.arc(cx,cy,cr,0,7);x.fillStyle='rgba(6,20,36,.82)';x.fill();x.strokeStyle='rgba(126,186,232,.85)';x.lineWidth=2;x.stroke();
  x.beginPath();x.moveTo(cx,cy-cr*.72);x.lineTo(cx-cr*.34,cy+cr*.34);x.lineTo(cx,cy+cr*.08);x.lineTo(cx+cr*.34,cy+cr*.34);x.closePath();x.fillStyle='#ff5a65';x.fill();
  x.textAlign='center';x.fillStyle='#fff';x.font='900 '+Math.max(9,S/82)+'px Arial,sans-serif';x.fillText('N',cx,cy+cr*.62);
  $('bmStorm').textContent=state==='ground'?(Math.hypot(pp.x,pp.z)>stormR?'IN THE STORM \u2014 GET INSIDE':'safe inside the storm'):'riding the bus';
 }
+// ---------- minimap: POIs on the rotating HUD map ----------
+const baseDrawMini=drawMini;
+drawMini=function(sr){baseDrawMini(sr);
+ const S=170,sc=S/380,p=player.position,a=-yaw,ca=Math.cos(a),sa=Math.sin(a),lim=S/2-9;
+ for(const[nm,px,pz]of POIS){
+  const dx=(px-p.x)*sc,dz=(pz-p.z)*sc;if(Math.hypot(dx,dz)>lim+4)continue;
+  const X=S/2+dx*ca-dz*sa,Y=S/2+dx*sa+dz*ca;
+  mini.beginPath();mini.arc(X,Y,2.6,0,7);mini.fillStyle='#ffe071';mini.fill();
+  mini.strokeStyle='rgba(6,20,36,.95)';mini.lineWidth=1;mini.stroke();
+  const nm2=nm.toUpperCase();
+  mini.font='700 7px "Trebuchet MS",Arial,sans-serif';mini.textAlign='center';mini.textBaseline='middle';
+  mini.strokeStyle='rgba(6,20,36,.95)';mini.lineWidth=2.5;mini.strokeText(nm2,X,Y-5.5);
+  mini.fillStyle='#fff';mini.fillText(nm2,X,Y-5.5);
+ }}
 
 // ---------- party socket ----------
 function onMessage(m){switch(m.t){
