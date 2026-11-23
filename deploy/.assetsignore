@@ -1,0 +1,10 @@
+# keep the game source, the worker and this folder's own metadata out of the asset upload
+worker
+README.md
+wrangler.toml
+.assetsignore
+.gitignore
+.git
+.wrangler
+node_modules
+*.zip
